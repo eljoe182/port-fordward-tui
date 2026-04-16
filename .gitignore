@@ -1,0 +1,5 @@
+/portfwd-tui
+/bin/
+*.test
+*.out
+.DS_Store

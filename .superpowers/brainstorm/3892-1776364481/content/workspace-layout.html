@@ -1,0 +1,73 @@
+<h2>Workspace ligero — propuesta de layout</h2>
+<p class="subtitle">Estoy mostrando una propuesta visual para validar cómo convivirían selección, edición de puertos y runtime activo sin convertir la app en un wizard rígido.</p>
+
+<div class="section">
+  <div class="mockup">
+    <div class="mockup-header">Propuesta recomendada</div>
+    <div class="mockup-body">
+      <div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:12px;">
+        <div class="placeholder" style="flex:1;">Context: dev-cluster</div>
+        <div class="placeholder" style="flex:1;">Namespace: cco</div>
+        <div class="placeholder" style="width:120px;">Refresh</div>
+      </div>
+
+      <div style="display:flex;gap:12px;min-height:340px;">
+        <div style="flex:1.7;border:1px solid #334155;border-radius:10px;padding:12px;">
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <input class="mock-input" value="Buscar target..." style="flex:1;">
+            <div class="placeholder" style="width:90px;">svc/pod</div>
+            <div class="placeholder" style="width:90px;">favorites</div>
+          </div>
+          <div class="placeholder" style="margin-bottom:8px;">[ ] svc bff-dashboard | alias: dashboard | remote:3000 | local:3000 | favorite</div>
+          <div class="placeholder" style="margin-bottom:8px;">[x] svc cco-admin-api | alias: admin | remote:3000 | local:3001(editable)</div>
+          <div class="placeholder" style="margin-bottom:8px;">[x] pod redis-7dd... | remote:6379 | local:54724(editable)</div>
+          <div class="placeholder" style="margin-bottom:8px;">[ ] svc hikcentral-query-api | remote:3000 | local:3008</div>
+          <div class="placeholder">...</div>
+        </div>
+
+        <div style="flex:1;border:1px solid #334155;border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px;">
+          <div class="label">Selection / Plan</div>
+          <div class="placeholder">admin → localhost:3001 → remote:3000</div>
+          <div class="placeholder">redis → localhost:54724 → remote:6379</div>
+          <div class="placeholder">Warnings: none</div>
+          <button class="mock-button">Start selected</button>
+          <button class="mock-button">Save as favorite</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;border:1px solid #334155;border-radius:10px;padding:12px;">
+        <div class="label">Runtime</div>
+        <div class="placeholder" style="margin-bottom:8px;">ACTIVE  admin  localhost:3001 ↔ svc/cco-admin-api:3000   [stop] [retry]</div>
+        <div class="placeholder" style="margin-bottom:8px;">FAILED  redis  localhost:54724 ↔ pod/redis:6379        error: local port already in use</div>
+        <div class="placeholder">Hint: add more forwards without stopping active ones</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Qué estoy validando aquí</h3>
+  <div class="options" data-multiselect>
+    <div class="option" data-choice="a" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>Catálogo principal</h3>
+        <p>Que la lista de targets sea el centro de la experiencia.</p>
+      </div>
+    </div>
+    <div class="option" data-choice="b" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>Panel de plan lateral</h3>
+        <p>Que la selección y edición viva en un panel secundario, sin cambiar de pantalla.</p>
+      </div>
+    </div>
+    <div class="option" data-choice="c" onclick="toggleSelect(this)">
+      <div class="letter">C</div>
+      <div class="content">
+        <h3>Runtime inferior</h3>
+        <p>Que los forwards activos/fallidos estén siempre visibles abajo.</p>
+      </div>
+    </div>
+  </div>
+</div>
