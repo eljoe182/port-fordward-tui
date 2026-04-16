@@ -17,14 +17,16 @@ go run ./cmd/portfwd-tui
 
 ## Atajos de teclado
 
-| Tecla        | Acción                                   |
-| ------------ | ---------------------------------------- |
-| `Tab`        | Alternar entre tabs `Selected` / `Running` |
-| `Enter`      | Agregar target del catálogo a `Selected` |
-| `Ctrl+C`     | Salir con cleanup ordenado               |
-
-> Atajos adicionales (navegación, edición de puerto, start/stop) se van cableando
-> en tasks posteriores al MVP.
+| Tecla        | Acción                                                       |
+| ------------ | ------------------------------------------------------------ |
+| `↑` / `k`    | Cursor arriba en catálogo                                    |
+| `↓` / `j`    | Cursor abajo en catálogo                                     |
+| `Enter`      | Agregar target bajo el cursor a `Selected`                   |
+| `s`          | Iniciar port-forwards para todos los items en `Selected`     |
+| `x`          | Detener el forward bajo el cursor en tab `Running`           |
+| `Tab`        | Alternar entre tabs `Selected` / `Running`                   |
+| `Esc`        | Limpiar el error actual del header                           |
+| `q` / `Ctrl+C` | Salir con cleanup ordenado                                 |
 
 ## Persistencia
 

@@ -44,7 +44,7 @@ func bootstrap() (tui.Dependencies, error) {
 
 	runner := execadapter.New()
 	discovery := kubectl.NewDiscoveryClient(runner)
-	runtime := kubectl.NewRuntime(runner)
+	runtime := kubectl.NewRuntime()
 	store := configfile.NewStore(configDir)
 
 	return tui.Dependencies{

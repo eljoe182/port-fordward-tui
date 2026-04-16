@@ -25,6 +25,7 @@ const (
 
 type RunningItem struct {
 	TargetID   string
+	SessionID  string
 	Label      string
 	LocalPort  int
 	RemotePort int

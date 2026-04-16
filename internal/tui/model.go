@@ -22,16 +22,17 @@ type Dependencies struct {
 }
 
 type Model struct {
-	deps        Dependencies
-	ctx         context.Context
-	activeTab   Tab
-	contextName string
-	namespace   string
-	catalog     []CatalogItem
-	cursor      int
-	selected    []SelectedItem
-	running     []RunningItem
-	errMsg      string
+	deps          Dependencies
+	ctx           context.Context
+	activeTab     Tab
+	contextName   string
+	namespace     string
+	catalog       []CatalogItem
+	cursor        int
+	selected      []SelectedItem
+	running       []RunningItem
+	runningCursor int
+	errMsg        string
 }
 
 func NewModel(deps Dependencies) Model {

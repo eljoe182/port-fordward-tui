@@ -47,5 +47,6 @@ func (m Model) View() string {
 		}
 		body = components.SelectedTab(selectedEntries)
 	}
-	return header + "\n" + catalog + "\n" + body
+	footer := components.Footer(string(m.activeTab))
+	return header + "\n" + catalog + "\n" + body + "\n" + footer
 }
