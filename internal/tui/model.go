@@ -63,10 +63,29 @@ func (m *Model) selectCurrentItem() {
 		return
 	}
 	item := m.catalog[m.cursor]
+	for _, existing := range m.selected {
+		if existing.TargetID == item.ID {
+			return
+		}
+	}
 	m.selected = append(m.selected, SelectedItem{
 		TargetID:   item.ID,
 		Label:      item.Label,
 		LocalPort:  item.PreferredLocalPort,
 		RemotePort: item.RemotePort,
 	})
+}
+
+func (m *Model) moveCursor(delta int) {
+	if len(m.catalog) == 0 {
+		return
+	}
+	next := m.cursor + delta
+	if next < 0 {
+		next = 0
+	}
+	if next >= len(m.catalog) {
+		next = len(m.catalog) - 1
+	}
+	m.cursor = next
 }

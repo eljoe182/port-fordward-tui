@@ -25,13 +25,43 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	case tea.KeyMsg:
-		if isTabKey(msg) {
-			if m.activeTab == TabSelected {
-				m.activeTab = TabRunning
-			} else {
-				m.activeTab = TabSelected
-			}
+		return m.handleKey(msg)
+	}
+	return m, nil
+}
+
+func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.Type {
+	case tea.KeyCtrlC:
+		return m, tea.Quit
+	case tea.KeyTab:
+		if m.activeTab == TabSelected {
+			m.activeTab = TabRunning
+		} else {
+			m.activeTab = TabSelected
 		}
+		return m, nil
+	case tea.KeyEnter:
+		m.selectCurrentItem()
+		return m, nil
+	case tea.KeyUp:
+		m.moveCursor(-1)
+		return m, nil
+	case tea.KeyDown:
+		m.moveCursor(1)
+		return m, nil
+	case tea.KeyEsc:
+		m.errMsg = ""
+		return m, nil
+	}
+
+	switch string(msg.Runes) {
+	case "q":
+		return m, tea.Quit
+	case "j":
+		m.moveCursor(1)
+	case "k":
+		m.moveCursor(-1)
 	}
 	return m, nil
 }
