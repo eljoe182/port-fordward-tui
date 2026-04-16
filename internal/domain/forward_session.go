@@ -30,3 +30,10 @@ type ForwardSession struct {
 	Err        string
 	StartedAt  time.Time
 }
+
+type ForwardEvent struct {
+	SessionID string
+	TargetID  string
+	Status    ForwardStatus
+	Err       string
+}

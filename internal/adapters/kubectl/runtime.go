@@ -5,42 +5,46 @@ import (
 	"fmt"
 	"os/exec"
 	"strconv"
+	"strings"
 	"sync"
 
 	"cco-port-forward-tui/internal/domain"
 )
 
+type CommandBuilder func(ctx context.Context, req domain.ForwardRequest) *exec.Cmd
+
 type Runtime struct {
+	build    CommandBuilder
+	events   chan domain.ForwardEvent
 	mu       sync.Mutex
 	sessions map[string]*session
 	counter  int
 }
 
 type session struct {
-	cmd    *exec.Cmd
-	cancel context.CancelFunc
-	done   chan error
+	targetID string
+	cancel   context.CancelFunc
+	done     chan struct{}
+	stopping bool
 }
 
 func NewRuntime() *Runtime {
-	return &Runtime{sessions: map[string]*session{}}
+	return NewRuntimeWithBuilder(defaultCommandBuilder)
 }
+
+func NewRuntimeWithBuilder(build CommandBuilder) *Runtime {
+	return &Runtime{
+		build:    build,
+		events:   make(chan domain.ForwardEvent, 16),
+		sessions: map[string]*session{},
+	}
+}
+
+func (r *Runtime) Events() <-chan domain.ForwardEvent { return r.events }
 
 func (r *Runtime) Start(ctx context.Context, req domain.ForwardRequest) (string, error) {
 	subCtx, cancel := context.WithCancel(ctx)
-
-	resource := string(req.Type) + "/" + req.TargetID
-	if colonIdx := indexOf(req.TargetID, ':'); colonIdx > 0 {
-		resource = string(req.Type) + "/" + req.TargetID[colonIdx+1:]
-	}
-
-	cmd := exec.CommandContext(subCtx, "kubectl",
-		"--context", req.Context,
-		"--namespace", req.Namespace,
-		"port-forward",
-		resource,
-		strconv.Itoa(req.LocalPort)+":"+strconv.Itoa(req.RemotePort),
-	)
+	cmd := r.build(subCtx, req)
 
 	if err := cmd.Start(); err != nil {
 		cancel()
@@ -50,14 +54,15 @@ func (r *Runtime) Start(ctx context.Context, req domain.ForwardRequest) (string,
 	r.mu.Lock()
 	r.counter++
 	sessionID := fmt.Sprintf("sid-%d", r.counter)
-	done := make(chan error, 1)
-	r.sessions[sessionID] = &session{cmd: cmd, cancel: cancel, done: done}
+	sess := &session{
+		targetID: req.TargetID,
+		cancel:   cancel,
+		done:     make(chan struct{}),
+	}
+	r.sessions[sessionID] = sess
 	r.mu.Unlock()
 
-	go func() {
-		done <- cmd.Wait()
-		close(done)
-	}()
+	go r.monitor(sessionID, sess, cmd)
 
 	return sessionID, nil
 }
@@ -66,7 +71,7 @@ func (r *Runtime) Stop(_ context.Context, sessionID string) error {
 	r.mu.Lock()
 	sess, ok := r.sessions[sessionID]
 	if ok {
-		delete(r.sessions, sessionID)
+		sess.stopping = true
 	}
 	r.mu.Unlock()
 
@@ -78,11 +83,43 @@ func (r *Runtime) Stop(_ context.Context, sessionID string) error {
 	return nil
 }
 
-func indexOf(s string, c byte) int {
-	for i := 0; i < len(s); i++ {
-		if s[i] == c {
-			return i
-		}
+func (r *Runtime) monitor(sessionID string, sess *session, cmd *exec.Cmd) {
+	err := cmd.Wait()
+
+	r.mu.Lock()
+	stopping := sess.stopping
+	delete(r.sessions, sessionID)
+	r.mu.Unlock()
+
+	status := domain.ForwardStatusFailed
+	errMsg := ""
+	if stopping {
+		status = domain.ForwardStatusStopped
+	} else if err != nil {
+		errMsg = err.Error()
 	}
-	return -1
+
+	r.events <- domain.ForwardEvent{
+		SessionID: sessionID,
+		TargetID:  sess.targetID,
+		Status:    status,
+		Err:       errMsg,
+	}
+	close(sess.done)
+}
+
+func defaultCommandBuilder(ctx context.Context, req domain.ForwardRequest) *exec.Cmd {
+	name := req.TargetID
+	if idx := strings.IndexByte(req.TargetID, ':'); idx >= 0 {
+		name = req.TargetID[idx+1:]
+	}
+	resource := string(req.Type) + "/" + name
+
+	return exec.CommandContext(ctx, "kubectl",
+		"--context", req.Context,
+		"--namespace", req.Namespace,
+		"port-forward",
+		resource,
+		strconv.Itoa(req.LocalPort)+":"+strconv.Itoa(req.RemotePort),
+	)
 }

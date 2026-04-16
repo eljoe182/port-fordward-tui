@@ -23,6 +23,7 @@ func (r *recordingRunner) Stop(_ context.Context, sessionID string) error {
 	r.stops = append(r.stops, sessionID)
 	return nil
 }
+func (r *recordingRunner) Events() <-chan domain.ForwardEvent { return nil }
 
 func TestStartKeyMovesSelectedItemsToRunningWithStartingStatus(t *testing.T) {
 	m := NewModel(Dependencies{Runtime: &recordingRunner{}})

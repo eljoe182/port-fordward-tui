@@ -1,6 +1,10 @@
 package tui
 
-import tea "github.com/charmbracelet/bubbletea"
+import (
+	tea "github.com/charmbracelet/bubbletea"
+
+	"cco-port-forward-tui/internal/domain"
+)
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -47,6 +51,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.runningCursor = maxInt(0, len(m.running)-1)
 		}
 		return m, nil
+	case forwardEventMsg:
+		return m.applyForwardEvent(msg)
 	case tea.KeyMsg:
 		return m.handleKey(msg)
 	}
@@ -134,6 +140,32 @@ func (m Model) stopRunningUnderCursor() (tea.Model, tea.Cmd) {
 		m.runningCursor = maxInt(0, len(m.running)-1)
 	}
 	return m, stopForwardCmd(m.ctx, m.deps.Runtime, item.TargetID, item.SessionID)
+}
+
+func (m Model) applyForwardEvent(msg forwardEventMsg) (tea.Model, tea.Cmd) {
+	event := msg.event
+	switch event.Status {
+	case domain.ForwardStatusStopped:
+		m.running = removeRunningByTarget(m.running, event.TargetID)
+		if m.runningCursor >= len(m.running) {
+			m.runningCursor = maxInt(0, len(m.running)-1)
+		}
+	case domain.ForwardStatusFailed:
+		for i := range m.running {
+			if m.running[i].TargetID == event.TargetID {
+				m.running[i].Status = StatusFailed
+				m.running[i].Err = event.Err
+			}
+		}
+	case domain.ForwardStatusRunning:
+		for i := range m.running {
+			if m.running[i].TargetID == event.TargetID {
+				m.running[i].Status = StatusRunning
+				m.running[i].Err = ""
+			}
+		}
+	}
+	return m, listenForwardEventsCmd(m.deps.Runtime)
 }
 
 func isAlreadyRunning(running []RunningItem, targetID string) bool {

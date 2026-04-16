@@ -50,10 +50,17 @@ func (m Model) WithContext(ctx context.Context) Model {
 }
 
 func (m Model) Init() tea.Cmd {
-	if m.deps.Discovery == nil || m.deps.ConfigStore == nil {
+	var cmds []tea.Cmd
+	if m.deps.Discovery != nil && m.deps.ConfigStore != nil {
+		cmds = append(cmds, loadCatalogCmd(m.ctx, m.deps))
+	}
+	if listen := listenForwardEventsCmd(m.deps.Runtime); listen != nil {
+		cmds = append(cmds, listen)
+	}
+	if len(cmds) == 0 {
 		return nil
 	}
-	return loadCatalogCmd(m.ctx, m.deps)
+	return tea.Batch(cmds...)
 }
 
 func (m *Model) selectCurrentItem() {
