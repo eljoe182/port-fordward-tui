@@ -20,7 +20,17 @@ func (m Model) View() string {
 	var body string
 	switch m.activeTab {
 	case TabRunning:
-		body = components.RunningTab()
+		runningEntries := make([]components.RunningEntry, 0, len(m.running))
+		for _, entry := range m.running {
+			runningEntries = append(runningEntries, components.RunningEntry{
+				Label:      entry.Label,
+				LocalPort:  entry.LocalPort,
+				RemotePort: entry.RemotePort,
+				Status:     string(entry.Status),
+				Err:        entry.Err,
+			})
+		}
+		body = components.RunningTab(runningEntries...)
 	default:
 		selectedEntries := make([]components.SelectedEntry, 0, len(m.selected))
 		for _, entry := range m.selected {

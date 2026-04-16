@@ -16,6 +16,7 @@ type Model struct {
 	catalog   []CatalogItem
 	cursor    int
 	selected  []SelectedItem
+	running   []RunningItem
 }
 
 func NewModel(_ Dependencies) Model {
