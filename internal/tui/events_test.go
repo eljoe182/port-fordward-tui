@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"cco-port-forward-tui/internal/domain"
+	"port-forward-tui/internal/domain"
 )
 
 type channelRunner struct {

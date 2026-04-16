@@ -4,10 +4,11 @@ import (
 	"context"
 	"testing"
 
-	appruntime "cco-port-forward-tui/internal/app/runtime"
+	appruntime "port-forward-tui/internal/app/runtime"
+
 	tea "github.com/charmbracelet/bubbletea"
 
-	"cco-port-forward-tui/internal/domain"
+	"port-forward-tui/internal/domain"
 )
 
 type recordingRunner struct {

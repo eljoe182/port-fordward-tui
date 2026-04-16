@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"sync"
 
-	"cco-port-forward-tui/internal/domain"
+	"port-forward-tui/internal/domain"
 )
 
 type CommandBuilder func(ctx context.Context, req domain.ForwardRequest) *exec.Cmd

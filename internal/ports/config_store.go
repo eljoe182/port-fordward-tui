@@ -1,6 +1,6 @@
 package ports
 
-import "cco-port-forward-tui/internal/domain"
+import "port-forward-tui/internal/domain"
 
 type ConfigStore interface {
 	Load() (domain.AppConfig, error)

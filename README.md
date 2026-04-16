@@ -5,15 +5,42 @@ TUI en Go + Bubble Tea para gestionar `kubectl port-forward` sobre múltiples ta
 
 ## Requisitos
 
-- Go 1.22+
+- Go 1.24+ (see `go.mod`)
 - `kubectl` disponible en el `PATH`
 - Acceso a un cluster Kubernetes con contexts configurados
 
-## Uso
+## Build and run
+
+Run from source (requires Go on the machine):
 
 ```bash
 go run ./cmd/portfwd-tui
 ```
+
+Build a binary in the current directory:
+
+```bash
+go build -o portfwd-tui ./cmd/portfwd-tui
+chmod +x portfwd-tui   # Linux / macOS if needed
+./portfwd-tui
+```
+
+Smaller release-style binary (static linking, strip debug info):
+
+```bash
+CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o portfwd-tui ./cmd/portfwd-tui
+```
+
+Cross-compile examples (run from the repository root; adjust `GOOS` / `GOARCH` as needed):
+
+```bash
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o dist/portfwd-tui-linux-amd64 ./cmd/portfwd-tui
+GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o dist/portfwd-tui-darwin-arm64 ./cmd/portfwd-tui
+GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o dist/portfwd-tui-darwin-amd64 ./cmd/portfwd-tui
+GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o dist/portfwd-tui-windows-amd64.exe ./cmd/portfwd-tui
+```
+
+End users only need the built executable plus `kubectl` and a valid cluster context; they do not need Go installed.
 
 ## Atajos de teclado
 

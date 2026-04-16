@@ -3,11 +3,12 @@ package tui
 import (
 	"context"
 
-	appruntime "cco-port-forward-tui/internal/app/runtime"
+	appruntime "port-forward-tui/internal/app/runtime"
+
 	tea "github.com/charmbracelet/bubbletea"
 
-	"cco-port-forward-tui/internal/app/catalog"
-	"cco-port-forward-tui/internal/ports"
+	"port-forward-tui/internal/app/catalog"
+	"port-forward-tui/internal/ports"
 )
 
 type Tab string

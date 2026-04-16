@@ -6,7 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"cco-port-forward-tui/internal/domain"
+	"port-forward-tui/internal/domain"
 )
 
 func TestUpdateStoresCatalogOnLoadedMsg(t *testing.T) {

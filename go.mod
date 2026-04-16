@@ -1,4 +1,4 @@
-module cco-port-forward-tui
+module port-forward-tui
 
 go 1.24.2
 

@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"cco-port-forward-tui/internal/domain"
+	"port-forward-tui/internal/domain"
 )
 
 type Store struct {

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"cco-port-forward-tui/internal/domain"
+	"port-forward-tui/internal/domain"
 )
 
 type scriptedExec struct {

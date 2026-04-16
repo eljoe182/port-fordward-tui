@@ -3,7 +3,8 @@ package tui
 import (
 	"fmt"
 
-	"cco-port-forward-tui/internal/tui/components"
+	"port-forward-tui/internal/tui/components"
+
 	"github.com/charmbracelet/lipgloss"
 )
 

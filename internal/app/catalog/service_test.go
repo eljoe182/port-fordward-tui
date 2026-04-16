@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"cco-port-forward-tui/internal/domain"
+	"port-forward-tui/internal/domain"
 )
 
 func TestSmartRankingPrioritizesFavoriteRecentConfiguredTargets(t *testing.T) {

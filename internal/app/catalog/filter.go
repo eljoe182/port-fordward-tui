@@ -3,7 +3,7 @@ package catalog
 import (
 	"strings"
 
-	"cco-port-forward-tui/internal/domain"
+	"port-forward-tui/internal/domain"
 )
 
 func ApplyFilters(targets []domain.Target, opts LoadOptions) []domain.Target {

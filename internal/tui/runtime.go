@@ -4,11 +4,12 @@ import (
 	"context"
 	"strings"
 
-	appruntime "cco-port-forward-tui/internal/app/runtime"
+	appruntime "port-forward-tui/internal/app/runtime"
+
 	tea "github.com/charmbracelet/bubbletea"
 
-	"cco-port-forward-tui/internal/domain"
-	"cco-port-forward-tui/internal/ports"
+	"port-forward-tui/internal/domain"
+	"port-forward-tui/internal/ports"
 )
 
 type forwardStartedMsg struct {

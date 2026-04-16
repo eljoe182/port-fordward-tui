@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"cco-port-forward-tui/internal/domain"
+	"port-forward-tui/internal/domain"
 )
 
 func TestRuntimeEmitsFailedEventWhenProcessExitsUnexpectedly(t *testing.T) {

@@ -3,7 +3,7 @@ package ports
 import (
 	"context"
 
-	"cco-port-forward-tui/internal/domain"
+	"port-forward-tui/internal/domain"
 )
 
 type KubernetesDiscovery interface {

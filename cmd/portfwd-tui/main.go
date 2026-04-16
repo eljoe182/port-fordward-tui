@@ -11,11 +11,11 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"cco-port-forward-tui/internal/adapters/configfile"
-	execadapter "cco-port-forward-tui/internal/adapters/exec"
-	"cco-port-forward-tui/internal/adapters/kubectl"
-	appruntime "cco-port-forward-tui/internal/app/runtime"
-	"cco-port-forward-tui/internal/tui"
+	"port-forward-tui/internal/adapters/configfile"
+	execadapter "port-forward-tui/internal/adapters/exec"
+	"port-forward-tui/internal/adapters/kubectl"
+	appruntime "port-forward-tui/internal/app/runtime"
+	"port-forward-tui/internal/tui"
 )
 
 func main() {

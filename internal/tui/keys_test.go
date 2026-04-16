@@ -6,8 +6,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"cco-port-forward-tui/internal/app/catalog"
-	"cco-port-forward-tui/internal/domain"
+	"port-forward-tui/internal/app/catalog"
+	"port-forward-tui/internal/domain"
 )
 
 func newModelWithCatalog(items ...CatalogItem) Model {

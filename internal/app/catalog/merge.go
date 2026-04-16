@@ -1,6 +1,6 @@
 package catalog
 
-import "cco-port-forward-tui/internal/domain"
+import "port-forward-tui/internal/domain"
 
 func MergeTargets(discovered []domain.Target, configs map[string]domain.TargetConfig) []domain.Target {
 	merged := make([]domain.Target, 0, len(discovered))

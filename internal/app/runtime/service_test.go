@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"cco-port-forward-tui/internal/domain"
+	"port-forward-tui/internal/domain"
 )
 
 type fakeRunner struct {

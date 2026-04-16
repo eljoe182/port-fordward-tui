@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"cco-port-forward-tui/internal/domain"
+	"port-forward-tui/internal/domain"
 )
 
 func RankSmart(targets []domain.Target, now time.Time, query string) []domain.Target {

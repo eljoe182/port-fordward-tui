@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"cco-port-forward-tui/internal/app/catalog"
-	"cco-port-forward-tui/internal/domain"
+	"port-forward-tui/internal/app/catalog"
+	"port-forward-tui/internal/domain"
 )
 
 type fakeDiscovery struct {

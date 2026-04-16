@@ -331,7 +331,7 @@ import (
 	"testing"
 	"time"
 
-	"cco-port-forward-tui/internal/domain"
+	"port-forward-tui/internal/domain"
 )
 
 func TestSmartRankingPrioritizesFavoriteRecentConfiguredTargets(t *testing.T) {
@@ -365,7 +365,7 @@ import (
 	"strings"
 	"time"
 
-	"cco-port-forward-tui/internal/domain"
+	"port-forward-tui/internal/domain"
 )
 
 func RankSmart(targets []domain.Target, now time.Time, query string) []domain.Target {
@@ -431,7 +431,7 @@ package configfile
 import (
 	"testing"
 
-	"cco-port-forward-tui/internal/domain"
+	"port-forward-tui/internal/domain"
 )
 
 func TestStoreRoundTripPersistsTargetConfig(t *testing.T) {
@@ -474,7 +474,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"cco-port-forward-tui/internal/domain"
+	"port-forward-tui/internal/domain"
 )
 
 type Store struct{ path string }
@@ -544,7 +544,7 @@ import (
 	"context"
 	"testing"
 
-	"cco-port-forward-tui/internal/domain"
+	"port-forward-tui/internal/domain"
 )
 
 func TestStartRejectsConflictingLocalPorts(t *testing.T) {
@@ -577,7 +577,7 @@ import (
 	"context"
 	"fmt"
 
-	"cco-port-forward-tui/internal/domain"
+	"port-forward-tui/internal/domain"
 )
 
 type Runner interface {

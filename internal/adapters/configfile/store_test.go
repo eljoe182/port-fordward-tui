@@ -3,7 +3,7 @@ package configfile
 import (
 	"testing"
 
-	"cco-port-forward-tui/internal/domain"
+	"port-forward-tui/internal/domain"
 )
 
 func TestStoreRoundTripPersistsTargetConfig(t *testing.T) {

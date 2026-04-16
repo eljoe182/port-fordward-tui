@@ -3,8 +3,9 @@ package tui
 import (
 	"fmt"
 
-	"cco-port-forward-tui/internal/app/catalog"
-	"cco-port-forward-tui/internal/domain"
+	"port-forward-tui/internal/app/catalog"
+	"port-forward-tui/internal/domain"
+
 	tea "github.com/charmbracelet/bubbletea"
 )
 

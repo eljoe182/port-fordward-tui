@@ -3,8 +3,8 @@ package tui
 import (
 	tea "github.com/charmbracelet/bubbletea"
 
-	"cco-port-forward-tui/internal/domain"
-	"cco-port-forward-tui/internal/ports"
+	"port-forward-tui/internal/domain"
+	"port-forward-tui/internal/ports"
 )
 
 type forwardEventMsg struct {

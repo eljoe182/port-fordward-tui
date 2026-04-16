@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"cco-port-forward-tui/internal/domain"
+	"port-forward-tui/internal/domain"
 )
 
 type ExecRunner interface {

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"cco-port-forward-tui/internal/domain"
-	"cco-port-forward-tui/internal/ports"
+	"port-forward-tui/internal/domain"
+	"port-forward-tui/internal/ports"
 )
 
 type StartResult struct {
