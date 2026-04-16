@@ -70,11 +70,11 @@ func TestListTargetsMergesServicesAndPodsWithPorts(t *testing.T) {
 	}
 
 	admin, ok := byName["cco-admin-api"]
-	if !ok || admin.Type != domain.TargetTypeService || admin.RemotePort != 3000 {
+	if !ok || admin.Type != domain.TargetTypeService || admin.RemotePort != 3000 || admin.Namespace != "cco" || !admin.Available {
 		t.Fatalf("expected service cco-admin-api with port 3000, got %+v", admin)
 	}
 	redis, ok := byName["redis-0"]
-	if !ok || redis.Type != domain.TargetTypePod || redis.RemotePort != 6379 {
+	if !ok || redis.Type != domain.TargetTypePod || redis.RemotePort != 6379 || redis.Namespace != "cco" || !redis.Available {
 		t.Fatalf("expected pod redis-0 with port 6379, got %+v", redis)
 	}
 	if _, present := byName["no-ports"]; present {

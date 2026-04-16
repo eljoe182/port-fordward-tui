@@ -9,7 +9,7 @@ func TestRuntimeEventMarksForwardAsFailed(t *testing.T) {
 	next, _ := m.Update(RuntimeEvent{TargetID: "service:cco:admin", Status: StatusFailed, Err: "port in use"})
 	updated := next.(Model)
 
-	if updated.running[0].Status != StatusFailed || updated.running[0].Err != "port in use" {
+	if updated.running[0].Status != StatusFailed || updated.running[0].Err != "local port unavailable — edit the local port and retry" {
 		t.Fatalf("expected failed runtime state, got %#v", updated.running[0])
 	}
 }

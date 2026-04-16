@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os/exec"
 	"strconv"
-	"strings"
 	"sync"
 
 	"cco-port-forward-tui/internal/domain"
@@ -109,11 +108,13 @@ func (r *Runtime) monitor(sessionID string, sess *session, cmd *exec.Cmd) {
 }
 
 func defaultCommandBuilder(ctx context.Context, req domain.ForwardRequest) *exec.Cmd {
+	resourceType := req.Type
 	name := req.TargetID
-	if idx := strings.IndexByte(req.TargetID, ':'); idx >= 0 {
-		name = req.TargetID[idx+1:]
+	if parsed, ok := domain.ParseTargetKey(req.TargetID); ok {
+		resourceType = parsed.Type
+		name = parsed.Name
 	}
-	resource := string(req.Type) + "/" + name
+	resource := string(resourceType) + "/" + name
 
 	return exec.CommandContext(ctx, "kubectl",
 		"--context", req.Context,

@@ -120,9 +120,11 @@ func (c DiscoveryClient) listServices(ctx context.Context, contextName, namespac
 			continue
 		}
 		targets = append(targets, domain.Target{
+			Namespace:  namespace,
 			Name:       item.Metadata.Name,
 			Type:       domain.TargetTypeService,
 			RemotePort: item.Spec.Ports[0].Port,
+			Available:  true,
 		})
 	}
 	return targets, nil
@@ -152,9 +154,11 @@ func (c DiscoveryClient) listPods(ctx context.Context, contextName, namespace st
 			continue
 		}
 		targets = append(targets, domain.Target{
+			Namespace:  namespace,
 			Name:       item.Metadata.Name,
 			Type:       domain.TargetTypePod,
 			RemotePort: port,
+			Available:  true,
 		})
 	}
 	return targets, nil

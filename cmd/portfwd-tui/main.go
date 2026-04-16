@@ -14,6 +14,7 @@ import (
 	"cco-port-forward-tui/internal/adapters/configfile"
 	execadapter "cco-port-forward-tui/internal/adapters/exec"
 	"cco-port-forward-tui/internal/adapters/kubectl"
+	appruntime "cco-port-forward-tui/internal/app/runtime"
 	"cco-port-forward-tui/internal/tui"
 )
 
@@ -45,12 +46,14 @@ func bootstrap() (tui.Dependencies, error) {
 	runner := execadapter.New()
 	discovery := kubectl.NewDiscoveryClient(runner)
 	runtime := kubectl.NewRuntime()
+	runtimeApp := appruntime.NewService(runtime)
 	store := configfile.NewStore(configDir)
 
 	return tui.Dependencies{
 		Discovery:   discovery,
 		ConfigStore: store,
 		Runtime:     runtime,
+		RuntimeApp:  runtimeApp,
 	}, nil
 }
 

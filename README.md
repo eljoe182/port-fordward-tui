@@ -22,6 +22,10 @@ go run ./cmd/portfwd-tui
 | `↑` / `k`    | Cursor arriba en catálogo                                    |
 | `↓` / `j`    | Cursor abajo en catálogo                                     |
 | `Enter`      | Agregar target bajo el cursor a `Selected`                   |
+| `f`          | Alternar favorito sobre el target bajo el cursor             |
+| `c`          | Cambiar al siguiente contexto y recargar catálogo            |
+| `n`          | Cambiar al siguiente namespace y recargar catálogo           |
+| `r`          | Refrescar catálogo usando contexto/namespace actual          |
 | `s`          | Iniciar port-forwards para todos los items en `Selected`     |
 | `x`          | Detener el forward bajo el cursor en tab `Running`           |
 | `Tab`        | Alternar entre tabs `Selected` / `Running`                   |
@@ -37,7 +41,7 @@ La configuración vive en JSON:
 - Windows: `%AppData%\portfwd-tui\config.json`
 - Override: `PORTFWD_TUI_CONFIG_DIR=/ruta/custom`
 
-La config guarda, por target, alias, puerto local preferido y favoritos.
+La config guarda, por target, alias, puerto local preferido, favoritos, metadata mínima del target y recencia de uso.
 
 ## Arquitectura
 

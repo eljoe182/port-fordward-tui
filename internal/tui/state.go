@@ -1,10 +1,15 @@
 package tui
 
 type CatalogItem struct {
+	Type               string
+	Namespace          string
+	Name               string
 	ID                 string
 	Label              string
 	RemotePort         int
 	PreferredLocalPort int
+	Favorite           bool
+	Available          bool
 }
 
 type SelectedItem struct {
@@ -26,6 +31,9 @@ const (
 type RunningItem struct {
 	TargetID   string
 	SessionID  string
+	Context    string
+	Namespace  string
+	Type       string
 	Label      string
 	LocalPort  int
 	RemotePort int

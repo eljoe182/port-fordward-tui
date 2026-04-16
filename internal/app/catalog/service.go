@@ -16,11 +16,13 @@ func NewService(discovery ports.KubernetesDiscovery) Service {
 	return Service{discovery: discovery}
 }
 
-func (s Service) Load(ctx context.Context, contextName, namespace string, configs map[string]domain.TargetConfig, query string) ([]domain.Target, error) {
+func (s Service) Load(ctx context.Context, contextName, namespace string, configs map[string]domain.TargetConfig, opts LoadOptions) ([]domain.Target, error) {
 	discovered, err := s.discovery.ListTargets(ctx, contextName, namespace)
 	if err != nil {
 		return nil, err
 	}
 	merged := MergeTargets(discovered, configs)
-	return RankSmart(merged, time.Now(), query), nil
+	opts = opts.WithDefaults()
+	filtered := ApplyFilters(merged, opts)
+	return SortTargets(filtered, time.Now(), opts), nil
 }

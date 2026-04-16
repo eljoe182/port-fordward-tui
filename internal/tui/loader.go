@@ -12,16 +12,22 @@ import (
 )
 
 type CatalogResult struct {
-	Context   string
-	Namespace string
-	Items     []CatalogItem
+	Contexts   []string
+	Namespaces []string
+	Context    string
+	Namespace  string
+	Query      string
+	Filter     string
+	Sort       string
+	Items      []CatalogItem
 }
 
 type catalogLoadedMsg struct{ result CatalogResult }
 
 type catalogErrorMsg struct{ err error }
 
-func LoadCatalog(ctx context.Context, deps Dependencies) (CatalogResult, error) {
+func LoadCatalog(ctx context.Context, deps Dependencies, opts catalog.LoadOptions) (CatalogResult, error) {
+	opts = opts.WithDefaults()
 	cfg, err := deps.ConfigStore.Load()
 	if err != nil {
 		return CatalogResult{}, fmt.Errorf("load config: %w", err)
@@ -35,12 +41,17 @@ func LoadCatalog(ctx context.Context, deps Dependencies) (CatalogResult, error) 
 		}
 	}
 
+	contexts, err := deps.Discovery.ListContexts(ctx)
+	if err != nil {
+		return CatalogResult{}, fmt.Errorf("list contexts: %w", err)
+	}
+
 	namespace := cfg.CurrentNamespace
-	if namespace == "" {
-		namespaces, err := deps.Discovery.ListNamespaces(ctx, contextName)
-		if err != nil {
-			return CatalogResult{}, fmt.Errorf("list namespaces: %w", err)
-		}
+	namespaces, err := deps.Discovery.ListNamespaces(ctx, contextName)
+	if err != nil {
+		return CatalogResult{}, fmt.Errorf("list namespaces: %w", err)
+	}
+	if namespace == "" || !contains(namespaces, namespace) {
 		namespace = pickNamespace(namespaces)
 	}
 
@@ -50,32 +61,75 @@ func LoadCatalog(ctx context.Context, deps Dependencies) (CatalogResult, error) 
 	}
 
 	merged := catalog.MergeTargets(targets, cfg.Targets)
-	ranked := catalog.RankSmart(merged, time.Now(), "")
+	filtered := catalog.ApplyFilters(merged, opts)
+	ranked := catalog.SortTargets(filtered, time.Now(), opts)
 
 	items := make([]CatalogItem, 0, len(ranked))
 	for _, target := range ranked {
 		items = append(items, CatalogItem{
+			Type:               string(target.Type),
+			Namespace:          target.Namespace,
+			Name:               target.Name,
 			ID:                 catalog.TargetKey(target),
 			Label:              targetLabel(target),
 			RemotePort:         target.RemotePort,
 			PreferredLocalPort: choosePreferredPort(target),
+			Favorite:           target.Favorite,
+			Available:          target.Available,
 		})
 	}
 
 	return CatalogResult{
-		Context:   contextName,
-		Namespace: namespace,
-		Items:     items,
+		Contexts:   contexts,
+		Namespaces: namespaces,
+		Context:    contextName,
+		Namespace:  namespace,
+		Query:      opts.Query,
+		Filter:     string(opts.Filter),
+		Sort:       string(opts.Sort),
+		Items:      items,
 	}, nil
 }
 
-func loadCatalogCmd(ctx context.Context, deps Dependencies) tea.Cmd {
+func loadCatalogCmd(ctx context.Context, deps Dependencies, opts catalog.LoadOptions) tea.Cmd {
 	return func() tea.Msg {
-		result, err := LoadCatalog(ctx, deps)
+		result, err := LoadCatalog(ctx, deps, opts)
 		if err != nil {
 			return catalogErrorMsg{err: err}
 		}
 		return catalogLoadedMsg{result: result}
+	}
+}
+
+func saveConfigAndReloadCmd(ctx context.Context, deps Dependencies, opts catalog.LoadOptions, mutate func(*domain.AppConfig)) tea.Cmd {
+	return func() tea.Msg {
+		cfg, err := deps.ConfigStore.Load()
+		if err != nil {
+			return catalogErrorMsg{err: fmt.Errorf("load config: %w", err)}
+		}
+		mutate(&cfg)
+		if err := deps.ConfigStore.Save(cfg); err != nil {
+			return catalogErrorMsg{err: fmt.Errorf("save config: %w", err)}
+		}
+		result, err := LoadCatalog(ctx, deps, opts)
+		if err != nil {
+			return catalogErrorMsg{err: err}
+		}
+		return catalogLoadedMsg{result: result}
+	}
+}
+
+func saveConfigCmd(deps Dependencies, mutate func(*domain.AppConfig)) tea.Cmd {
+	return func() tea.Msg {
+		cfg, err := deps.ConfigStore.Load()
+		if err != nil {
+			return catalogErrorMsg{err: fmt.Errorf("load config: %w", err)}
+		}
+		mutate(&cfg)
+		if err := deps.ConfigStore.Save(cfg); err != nil {
+			return catalogErrorMsg{err: fmt.Errorf("save config: %w", err)}
+		}
+		return nil
 	}
 }
 
@@ -103,4 +157,13 @@ func choosePreferredPort(target domain.Target) int {
 		return target.PreferredLocalPort
 	}
 	return target.RemotePort
+}
+
+func contains(items []string, wanted string) bool {
+	for _, item := range items {
+		if item == wanted {
+			return true
+		}
+	}
+	return false
 }
