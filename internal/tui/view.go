@@ -5,7 +5,12 @@ import (
 )
 
 func (m Model) View() string {
-	header := components.Header(string(m.activeTab))
+	header := components.Header(components.HeaderData{
+		ActiveTab: string(m.activeTab),
+		Context:   m.contextName,
+		Namespace: m.namespace,
+		Err:       m.errMsg,
+	})
 
 	catalogItems := make([]components.Item, 0, len(m.catalog))
 	for _, item := range m.catalog {

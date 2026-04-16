@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"context"
+
 	tea "github.com/charmbracelet/bubbletea"
 
 	"cco-port-forward-tui/internal/ports"
@@ -20,24 +22,38 @@ type Dependencies struct {
 }
 
 type Model struct {
-	deps      Dependencies
-	activeTab Tab
-	catalog   []CatalogItem
-	cursor    int
-	selected  []SelectedItem
-	running   []RunningItem
-	errMsg    string
+	deps        Dependencies
+	ctx         context.Context
+	activeTab   Tab
+	contextName string
+	namespace   string
+	catalog     []CatalogItem
+	cursor      int
+	selected    []SelectedItem
+	running     []RunningItem
+	errMsg      string
 }
 
 func NewModel(deps Dependencies) Model {
 	return Model{
 		deps:      deps,
+		ctx:       context.Background(),
 		activeTab: TabSelected,
 		catalog:   []CatalogItem{},
 	}
 }
 
-func (m Model) Init() tea.Cmd { return nil }
+func (m Model) WithContext(ctx context.Context) Model {
+	m.ctx = ctx
+	return m
+}
+
+func (m Model) Init() tea.Cmd {
+	if m.deps.Discovery == nil || m.deps.ConfigStore == nil {
+		return nil
+	}
+	return loadCatalogCmd(m.ctx, m.deps)
+}
 
 func (m *Model) selectCurrentItem() {
 	if len(m.catalog) == 0 {

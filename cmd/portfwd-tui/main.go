@@ -26,7 +26,11 @@ func main() {
 		log.Fatalf("bootstrap failed: %v", err)
 	}
 
-	program := tea.NewProgram(tui.NewModel(deps), tea.WithAltScreen(), tea.WithContext(ctx))
+	program := tea.NewProgram(
+		tui.NewModel(deps).WithContext(ctx),
+		tea.WithAltScreen(),
+		tea.WithContext(ctx),
+	)
 	if _, err := program.Run(); err != nil {
 		log.Fatalf("tui exited: %v", err)
 	}
