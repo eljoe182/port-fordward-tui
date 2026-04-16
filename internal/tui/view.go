@@ -45,7 +45,12 @@ func (m Model) View() string {
 				RemotePort: entry.RemotePort,
 			})
 		}
-		body = components.SelectedTab(selectedEntries)
+		body = components.SelectedTab(components.SelectedTabData{
+			Entries:     selectedEntries,
+			Cursor:      m.selectedCursor,
+			EditingPort: m.editingPort,
+			PortBuffer:  m.portBuffer,
+		})
 	}
 	footer := components.Footer(string(m.activeTab))
 	return header + "\n" + catalog + "\n" + body + "\n" + footer

@@ -1,6 +1,9 @@
 package tui
 
 import (
+	"fmt"
+	"strconv"
+
 	tea "github.com/charmbracelet/bubbletea"
 
 	"cco-port-forward-tui/internal/domain"
@@ -60,6 +63,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.editingPort {
+		return m.handleEditPortKey(msg)
+	}
+
 	switch msg.Type {
 	case tea.KeyCtrlC:
 		return m, tea.Quit
@@ -93,10 +100,97 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "k":
 		m.moveCursor(-1)
 		return m, nil
+	case "J":
+		return m.moveActiveCursor(1), nil
+	case "K":
+		return m.moveActiveCursor(-1), nil
 	case "s":
 		return m.startSelectedForwards()
 	case "x":
 		return m.stopRunningUnderCursor()
+	case "e":
+		return m.enterPortEditMode(), nil
+	}
+	return m, nil
+}
+
+func (m Model) moveActiveCursor(delta int) Model {
+	switch m.activeTab {
+	case TabSelected:
+		if len(m.selected) == 0 {
+			m.selectedCursor = 0
+			return m
+		}
+		next := m.selectedCursor + delta
+		if next < 0 {
+			next = 0
+		}
+		if next >= len(m.selected) {
+			next = len(m.selected) - 1
+		}
+		m.selectedCursor = next
+	case TabRunning:
+		if len(m.running) == 0 {
+			m.runningCursor = 0
+			return m
+		}
+		next := m.runningCursor + delta
+		if next < 0 {
+			next = 0
+		}
+		if next >= len(m.running) {
+			next = len(m.running) - 1
+		}
+		m.runningCursor = next
+	default:
+		m.moveCursor(delta)
+	}
+	return m
+}
+
+func (m Model) enterPortEditMode() Model {
+	if m.activeTab != TabSelected || len(m.selected) == 0 {
+		return m
+	}
+	if m.selectedCursor < 0 || m.selectedCursor >= len(m.selected) {
+		return m
+	}
+	m.editingPort = true
+	m.portBuffer = strconv.Itoa(m.selected[m.selectedCursor].LocalPort)
+	m.errMsg = ""
+	return m
+}
+
+func (m Model) handleEditPortKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.Type {
+	case tea.KeyEsc:
+		m.editingPort = false
+		m.portBuffer = ""
+		m.errMsg = ""
+		return m, nil
+	case tea.KeyEnter:
+		port, err := strconv.Atoi(m.portBuffer)
+		if err != nil || port < 1 || port > 65535 {
+			m.errMsg = fmt.Sprintf("invalid port %q (must be 1..65535)", m.portBuffer)
+			return m, nil
+		}
+		m.selected[m.selectedCursor].LocalPort = port
+		m.editingPort = false
+		m.portBuffer = ""
+		m.errMsg = ""
+		return m, nil
+	case tea.KeyBackspace:
+		if len(m.portBuffer) > 0 {
+			m.portBuffer = m.portBuffer[:len(m.portBuffer)-1]
+		}
+		return m, nil
+	case tea.KeyCtrlC:
+		return m, tea.Quit
+	}
+	for _, r := range msg.Runes {
+		if r >= '0' && r <= '9' && len(m.portBuffer) < 5 {
+			m.portBuffer += string(r)
+		}
 	}
 	return m, nil
 }
