@@ -1,5 +1,7 @@
 package domain
 
+import "time"
+
 type TargetType string
 
 const (
@@ -14,6 +16,7 @@ type Target struct {
 	RemotePort         int
 	PreferredLocalPort int
 	Favorite           bool
+	LastUsedAt         time.Time
 }
 
 type TargetConfig struct {
