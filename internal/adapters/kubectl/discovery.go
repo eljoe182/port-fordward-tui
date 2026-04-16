@@ -21,6 +21,14 @@ func NewDiscoveryClient(exec ExecRunner) DiscoveryClient {
 	return DiscoveryClient{exec: exec}
 }
 
+func (c DiscoveryClient) CurrentContext(ctx context.Context) (string, error) {
+	out, err := c.exec.Run(ctx, "kubectl", "config", "current-context")
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(out), nil
+}
+
 func (c DiscoveryClient) ListContexts(ctx context.Context) ([]string, error) {
 	out, err := c.exec.Run(ctx, "kubectl", "config", "get-contexts", "-o", "name")
 	if err != nil {
