@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Test
+        run: go test ./... -count=1
+
+      - name: Build release archives (Linux + macOS)
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          BIN_NAME="portfwd-tui"
+          for GOOS in linux darwin; do
+            for GOARCH in amd64 arm64; do
+              STAGING="staging-${GOOS}-${GOARCH}"
+              rm -rf "${STAGING}"
+              mkdir -p "${STAGING}"
+              GOOS="${GOOS}" GOARCH="${GOARCH}" CGO_ENABLED=0 \
+                go build -trimpath -ldflags="-s -w" \
+                -o "${STAGING}/${BIN_NAME}" ./cmd/portfwd-tui
+              ARCHIVE="dist/${BIN_NAME}-${VERSION}-${GOOS}-${GOARCH}.tar.gz"
+              tar -czf "${ARCHIVE}" -C "${STAGING}" "${BIN_NAME}"
+              rm -rf "${STAGING}"
+            done
+          done
+          (cd dist && sha256sum *.tar.gz > SHA256SUMS)
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: portfwd-tui-${{ github.ref_name }}
+          path: dist/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
