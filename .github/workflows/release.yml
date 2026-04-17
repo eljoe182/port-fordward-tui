@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-go@v5
         with:
@@ -54,3 +56,25 @@ jobs:
         with:
           files: dist/*
           generate_release_notes: true
+
+      - name: Commit Homebrew formula to default branch
+        env:
+          HOMEBREW_FORMULA_PUSH_TOKEN: ${{ secrets.HOMEBREW_FORMULA_PUSH_TOKEN }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          bash .github/scripts/render-homebrew-formula.sh dist > /tmp/portfwd-tui.rb
+          git fetch origin "${DEFAULT_BRANCH}"
+          git checkout -B "${DEFAULT_BRANCH}" "origin/${DEFAULT_BRANCH}"
+          mkdir -p Formula
+          cp /tmp/portfwd-tui.rb Formula/portfwd-tui.rb
+          git config user.name "${{ secrets.GIT_COMMITTER_NAME }}"
+          git config user.email "${{ secrets.GIT_COMMITTER_EMAIL }}"
+          git add Formula/portfwd-tui.rb
+          if git diff --cached --quiet; then
+            echo "No formula changes to commit"
+            exit 0
+          fi
+          git commit -m "brew: bump portfwd-tui to ${GITHUB_REF_NAME}"
+          TOKEN="${HOMEBREW_FORMULA_PUSH_TOKEN:-${GITHUB_TOKEN}}"
+          git push "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${DEFAULT_BRANCH}"

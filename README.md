@@ -9,6 +9,20 @@ TUI en Go + Bubble Tea para gestionar `kubectl port-forward` sobre múltiples ta
 - `kubectl` disponible en el `PATH`
 - Acceso a un cluster Kubernetes con contexts configurados
 
+## Install (Homebrew)
+
+The GitHub release workflow publishes prebuilt archives and bumps `Formula/portfwd-tui.rb` on the default branch so this repository doubles as a Homebrew tap.
+
+```bash
+brew tap eljoe182/port-fordward-tui https://github.com/eljoe182/port-fordward-tui.git
+brew update
+brew install portfwd-tui
+```
+
+Use your own `OWNER/REPO` if you install from a fork. You need a published version tag (for example `v1.0.0`) so the formula’s URLs and checksums exist on the Releases page.
+
+If the default branch is protected against direct pushes, add a repository secret named `HOMEBREW_FORMULA_PUSH_TOKEN` (PAT with `contents: write` on this repository) so the workflow can push the formula update.
+
 ## Build and run
 
 Run from source (requires Go on the machine):
