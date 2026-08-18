@@ -4,6 +4,7 @@ import (
 	"context"
 
 	appruntime "port-forward-tui/internal/app/runtime"
+	"port-forward-tui/internal/domain"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -31,6 +32,7 @@ type Dependencies struct {
 	ConfigStore ports.ConfigStore
 	Runtime     ports.ForwardRunner
 	RuntimeApp  appruntime.Service
+	LocalPorts  ports.LocalPortChecker
 }
 
 type Model struct {
@@ -56,6 +58,7 @@ type Model struct {
 	portBuffer     string
 	running        []RunningItem
 	runningCursor  int
+	pendingEvents  map[string]domain.ForwardEvent
 	width          int
 	height         int
 	errMsg         string
@@ -63,12 +66,13 @@ type Model struct {
 
 func NewModel(deps Dependencies) Model {
 	return Model{
-		deps:       deps,
-		ctx:        context.Background(),
-		activeTab:  TabSelected,
-		filterMode: catalog.FilterAll,
-		sortMode:   catalog.SortSmart,
-		catalog:    []CatalogItem{},
+		deps:          deps,
+		ctx:           context.Background(),
+		activeTab:     TabSelected,
+		filterMode:    catalog.FilterAll,
+		sortMode:      catalog.SortSmart,
+		catalog:       []CatalogItem{},
+		pendingEvents: map[string]domain.ForwardEvent{},
 	}
 }
 
@@ -104,16 +108,38 @@ func (m *Model) selectCurrentItem() {
 	}
 	item := m.catalog[m.cursor]
 	for _, existing := range m.selected {
-		if existing.TargetID == item.ID {
+		if existing.ref() == item.ref() {
 			return
 		}
 	}
+	localPort, err := appruntime.NextAvailableLocalPort(item.PreferredLocalPort, m.reservedLocalPorts(), m.deps.LocalPorts)
+	if err != nil {
+		m.errMsg = err.Error()
+		return
+	}
 	m.selected = append(m.selected, SelectedItem{
+		Context:    item.Context,
+		Namespace:  item.Namespace,
+		Type:       item.Type,
 		TargetID:   item.ID,
 		Label:      item.Label,
-		LocalPort:  item.PreferredLocalPort,
+		LocalPort:  localPort,
 		RemotePort: item.RemotePort,
 	})
+	m.errMsg = ""
+}
+
+func (m Model) reservedLocalPorts() map[int]struct{} {
+	reserved := make(map[int]struct{}, len(m.selected)+len(m.running))
+	for _, item := range m.selected {
+		reserved[item.LocalPort] = struct{}{}
+	}
+	for _, item := range m.running {
+		if item.Status == StatusStarting || item.Status == StatusRunning {
+			reserved[item.LocalPort] = struct{}{}
+		}
+	}
+	return reserved
 }
 
 func (m *Model) moveCursor(delta int) {

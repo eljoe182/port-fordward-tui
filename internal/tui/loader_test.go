@@ -78,6 +78,9 @@ func TestLoadCatalogMergesConfigAndRanksTargets(t *testing.T) {
 	}
 	foundRedis := false
 	for _, item := range result.Items {
+		if item.Context != "dev" {
+			t.Fatalf("expected item context dev, got %+v", item)
+		}
 		if item.Name == "redis" && !item.Available {
 			foundRedis = true
 		}

@@ -2,6 +2,10 @@
 
 Compact context for coding agents. Prefer `README.md` for product behavior; this file is for **repo mechanics and pitfalls**.
 
+## Documentation language
+
+- **`README.md` must always be written in English.** Keep all headings, prose, tables, and examples in English when updating it.
+
 ## Module and layout
 
 - **Go module**: `port-forward-tui` (`go.mod`). **Main binary**: `go run ./cmd/portfwd-tui` / `go build -o portfwd-tui ./cmd/portfwd-tui`.
@@ -15,9 +19,9 @@ Compact context for coding agents. Prefer `README.md` for product behavior; this
 - **Single test**: `go test ./internal/tui -run '^TestName$' -count=1`
 - **Static checks**: `go vet ./...` (no repo-local golangci-lint / Makefile / CI workflow in-tree as of last check—do not assume extra gates exist)
 
-## Tests: README vs code
+## Test behavior
 
-- `README.md` suggests `go test ./... -short` for “unit only” and full `./...` for integration with real `kubectl`. **The tree does not use `testing.Short()` anywhere**, so `-short` currently does **not** change which tests run.
+- The tree does not use `testing.Short()` anywhere, so `-short` currently does **not** change which tests run.
 - `test/integration/` exists, but its tests are **`t.Skip` placeholders** until wiring is finished—they are not opt-in kubectl integration tests yet.
 
 ## Runtime / env (easy to miss)

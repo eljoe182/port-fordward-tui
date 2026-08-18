@@ -6,6 +6,8 @@ import (
 )
 
 type RunningEntry struct {
+	Context    string
+	Namespace  string
 	Label      string
 	LocalPort  int
 	RemotePort int
@@ -32,7 +34,7 @@ func RunningTabWindow(entries []RunningEntry, cursor, maxRows int) string {
 		if i == cursor {
 			marker = "▶ "
 		}
-		line := fmt.Sprintf("  • %s  %d→%d  [%s]", entry.Label, entry.LocalPort, entry.RemotePort, entry.Status)
+		line := fmt.Sprintf("  • %s%s  %d→%d  [%s]", entry.Label, scopeLabel(entry.Context, entry.Namespace), entry.LocalPort, entry.RemotePort, entry.Status)
 		line = marker + strings.TrimPrefix(line, "  ")
 		if entry.Err != "" {
 			line += "  err=" + entry.Err

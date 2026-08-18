@@ -36,6 +36,17 @@ func TestValidateRequestsRejectsConflictingLocalPorts(t *testing.T) {
 	}
 }
 
+func TestValidateRequestsRejectsSameTargetAndPortAcrossContexts(t *testing.T) {
+	selection := []domain.ForwardRequest{
+		{TargetID: "service:default:admin", Context: "dev", LocalPort: 3001, RemotePort: 3000},
+		{TargetID: "service:default:admin", Context: "prod", LocalPort: 3001, RemotePort: 3000},
+	}
+
+	if err := ValidateRequests(selection, nil); err == nil {
+		t.Fatalf("expected host-global local port conflict")
+	}
+}
+
 func TestValidateRequestsRejectsConflictWithActiveSession(t *testing.T) {
 	selection := []domain.ForwardRequest{{TargetID: "svc:admin", LocalPort: 3001, RemotePort: 3000}}
 	active := []domain.ForwardSession{{TargetID: "svc:other", LocalPort: 3001, Status: domain.ForwardStatusRunning}}
@@ -43,6 +54,15 @@ func TestValidateRequestsRejectsConflictWithActiveSession(t *testing.T) {
 	err := ValidateRequests(selection, active)
 	if err == nil {
 		t.Fatalf("expected active session conflict")
+	}
+}
+
+func TestValidateRequestsRejectsSameTargetConflictWithActiveSession(t *testing.T) {
+	selection := []domain.ForwardRequest{{TargetID: "service:default:admin", LocalPort: 3001, RemotePort: 3000}}
+	active := []domain.ForwardSession{{TargetID: "service:default:admin", LocalPort: 3001, Status: domain.ForwardStatusRunning}}
+
+	if err := ValidateRequests(selection, active); err == nil {
+		t.Fatalf("expected active port conflict even for the same target")
 	}
 }
 

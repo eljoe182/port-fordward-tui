@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+
+	"port-forward-tui/internal/domain"
 )
 
 func TestSelectedTabCursorMovesWithShiftJAndK(t *testing.T) {
@@ -47,15 +49,16 @@ func TestEKeyOnSelectedTabEntersPortEditMode(t *testing.T) {
 }
 
 func TestEnterInPortEditModeCommitsValidPort(t *testing.T) {
-	m := NewModel(Dependencies{})
+	store := &fakeStore{cfg: domain.AppConfig{Targets: map[string]domain.TargetConfig{}}}
+	m := NewModel(Dependencies{ConfigStore: store})
 	m.activeTab = TabSelected
 	m.selected = []SelectedItem{
-		{TargetID: "service:a", Label: "a", LocalPort: 3001, RemotePort: 3000},
+		{Context: "dev", Namespace: "default", Type: "service", TargetID: "service:default:a", Label: "a", LocalPort: 3001, RemotePort: 3000},
 	}
 	m.editingPort = true
 	m.portBuffer = "8080"
 
-	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	next, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = next.(Model)
 
 	if m.editingPort {
@@ -63,6 +66,15 @@ func TestEnterInPortEditModeCommitsValidPort(t *testing.T) {
 	}
 	if m.selected[0].LocalPort != 8080 {
 		t.Fatalf("expected LocalPort=8080, got %d", m.selected[0].LocalPort)
+	}
+	if cmd == nil {
+		t.Fatalf("expected port persistence command")
+	}
+	if msg := cmd(); msg != nil {
+		t.Fatalf("expected successful persistence, got %T", msg)
+	}
+	if got := store.cfg.Targets["service:default:a"].PreferredLocalPort; got != 8080 {
+		t.Fatalf("expected manually edited port persisted, got %d", got)
 	}
 }
 

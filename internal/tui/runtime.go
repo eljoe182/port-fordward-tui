@@ -2,7 +2,6 @@ package tui
 
 import (
 	"context"
-	"strings"
 
 	appruntime "port-forward-tui/internal/app/runtime"
 
@@ -13,17 +12,22 @@ import (
 )
 
 type forwardStartedMsg struct {
-	TargetID  string
+	Ref       forwardRef
 	SessionID string
 }
 
 type forwardFailedMsg struct {
-	TargetID string
-	Err      string
+	Ref forwardRef
+	Err string
 }
 
 type forwardStoppedMsg struct {
-	TargetID string
+	SessionID string
+}
+
+type forwardStopFailedMsg struct {
+	SessionID string
+	Err       string
 }
 
 type forwardBatchMsg struct {
@@ -35,55 +39,62 @@ func retryForwardCmd(ctx context.Context, svc appruntime.Service, item RunningIt
 	return func() tea.Msg {
 		result, err := svc.StartOne(ctx, runningToRequest(item), active)
 		if err != nil {
-			return forwardFailedMsg{TargetID: item.TargetID, Err: err.Error()}
+			return forwardFailedMsg{Ref: item.ref(), Err: err.Error()}
 		}
 		if result.Err != nil {
-			return forwardFailedMsg{TargetID: item.TargetID, Err: result.Err.Error()}
+			return forwardFailedMsg{Ref: item.ref(), Err: result.Err.Error()}
 		}
-		return forwardStartedMsg{TargetID: item.TargetID, SessionID: result.SessionID}
+		return forwardStartedMsg{Ref: item.ref(), SessionID: result.SessionID}
 	}
 }
 
-func startForwardsCmd(ctx context.Context, svc appruntime.Service, selected []SelectedItem, contextName, namespace string, active []domain.ForwardSession) tea.Cmd {
+func startForwardsCmd(ctx context.Context, svc appruntime.Service, selected []SelectedItem, active []domain.ForwardSession) tea.Cmd {
 	requests := make([]domain.ForwardRequest, 0, len(selected))
 	for _, item := range selected {
-		requests = append(requests, selectedToRequest(item, contextName, namespace))
+		requests = append(requests, selectedToRequest(item))
 	}
 	return func() tea.Msg {
 		results, err := svc.StartMany(ctx, requests, active)
-		if err != nil {
-			return catalogErrorMsg{err: err}
-		}
 		msg := forwardBatchMsg{}
+		if err != nil {
+			for _, request := range requests {
+				msg.failed = append(msg.failed, forwardFailedMsg{Ref: requestRef(request), Err: err.Error()})
+			}
+			return msg
+		}
 		for _, result := range results {
 			if result.Err != nil {
-				msg.failed = append(msg.failed, forwardFailedMsg{TargetID: result.Request.TargetID, Err: result.Err.Error()})
+				msg.failed = append(msg.failed, forwardFailedMsg{Ref: requestRef(result.Request), Err: result.Err.Error()})
 				continue
 			}
-			msg.started = append(msg.started, forwardStartedMsg{TargetID: result.Request.TargetID, SessionID: result.SessionID})
+			msg.started = append(msg.started, forwardStartedMsg{Ref: requestRef(result.Request), SessionID: result.SessionID})
 		}
 		return msg
 	}
 }
 
-func stopForwardCmd(ctx context.Context, runner ports.ForwardRunner, targetID, sessionID string) tea.Cmd {
+func stopForwardCmd(ctx context.Context, runner ports.ForwardRunner, sessionID string) tea.Cmd {
 	return func() tea.Msg {
 		if err := runner.Stop(ctx, sessionID); err != nil {
-			return forwardFailedMsg{TargetID: targetID, Err: err.Error()}
+			return forwardStopFailedMsg{SessionID: sessionID, Err: err.Error()}
 		}
-		return forwardStoppedMsg{TargetID: targetID}
+		return forwardStoppedMsg{SessionID: sessionID}
 	}
 }
 
-func selectedToRequest(item SelectedItem, contextName, namespace string) domain.ForwardRequest {
+func requestRef(request domain.ForwardRequest) forwardRef {
+	return forwardRef{Context: request.Context, Namespace: request.Namespace, TargetID: request.TargetID}
+}
+
+func selectedToRequest(item SelectedItem) domain.ForwardRequest {
 	return domain.ForwardRequest{
 		TargetID:   item.TargetID,
 		Label:      item.Label,
 		LocalPort:  item.LocalPort,
 		RemotePort: item.RemotePort,
-		Context:    contextName,
-		Namespace:  namespace,
-		Type:       targetTypeFromID(item.TargetID),
+		Context:    item.Context,
+		Namespace:  item.Namespace,
+		Type:       domain.TargetType(item.Type),
 	}
 }
 
@@ -112,15 +123,4 @@ func activeForwardSessions(items []RunningItem) []domain.ForwardSession {
 		})
 	}
 	return sessions
-}
-
-func targetTypeFromID(id string) domain.TargetType {
-	prefix := strings.SplitN(id, ":", 2)[0]
-	switch prefix {
-	case string(domain.TargetTypePod):
-		return domain.TargetTypePod
-	case string(domain.TargetTypeService):
-		return domain.TargetTypeService
-	}
-	return domain.TargetTypeService
 }

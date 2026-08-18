@@ -72,7 +72,7 @@ func ValidateRequests(requests []domain.ForwardRequest, active []domain.ForwardS
 		if req.LocalPort < 1 || req.LocalPort > 65535 {
 			return fmt.Errorf("local port %d must be in range 1..65535", req.LocalPort)
 		}
-		if existing, exists := seen[req.LocalPort]; exists && existing != req.TargetID {
+		if existing, exists := seen[req.LocalPort]; exists {
 			return fmt.Errorf("local port %d already in use by %s", req.LocalPort, existing)
 		}
 		seen[req.LocalPort] = req.TargetID

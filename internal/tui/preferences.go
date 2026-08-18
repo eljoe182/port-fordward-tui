@@ -111,15 +111,13 @@ func (m Model) persistRecentSelections(items []SelectedItem) teaCmd {
 	now := time.Now().UTC()
 	return saveConfigCmd(m.deps, func(cfg *domain.AppConfig) {
 		ensureTargetsMap(cfg)
-		cfg.CurrentContext = m.contextName
-		cfg.CurrentNamespace = m.namespace
 		for _, item := range items {
 			entry := configFromSelectedItem(item)
+			entry.PreferredLocalPort = 0
 			if existing, ok := cfg.Targets[item.TargetID]; ok {
 				entry = mergeConfig(entry, existing)
 			}
 			entry.LastUsedAt = now
-			entry.PreferredLocalPort = item.LocalPort
 			cfg.Targets[item.TargetID] = entry
 		}
 	})
@@ -152,13 +150,17 @@ func configFromCatalogItem(item CatalogItem) domain.TargetConfig {
 
 func configFromSelectedItem(item SelectedItem) domain.TargetConfig {
 	ref, _ := domain.ParseTargetKey(item.TargetID)
+	targetType := domain.TargetType(item.Type)
+	if targetType == "" {
+		targetType = ref.Type
+	}
 	alias := ""
 	if item.Label != "" && item.Label != ref.Name {
 		alias = item.Label
 	}
 	return domain.TargetConfig{
-		Type:               ref.Type,
-		Namespace:          ref.Namespace,
+		Type:               targetType,
+		Namespace:          firstNonEmpty(item.Namespace, ref.Namespace),
 		Name:               ref.Name,
 		Alias:              alias,
 		PreferredLocalPort: item.LocalPort,

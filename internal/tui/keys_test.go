@@ -76,7 +76,7 @@ func TestEnterAddsCurrentCatalogItemToSelected(t *testing.T) {
 
 func TestEnterDoesNotDuplicateAlreadySelectedItem(t *testing.T) {
 	m := newModelWithCatalog(
-		CatalogItem{ID: "service:admin", Label: "admin", RemotePort: 3000, PreferredLocalPort: 3001},
+		CatalogItem{Context: "dev", Namespace: "default", Type: "service", ID: "service:admin", Label: "admin", RemotePort: 3000, PreferredLocalPort: 3001},
 	)
 
 	m = pressSpecial(t, m, tea.KeyEnter)
@@ -84,6 +84,20 @@ func TestEnterDoesNotDuplicateAlreadySelectedItem(t *testing.T) {
 
 	if len(m.selected) != 1 {
 		t.Fatalf("expected selected to stay at 1, got %d", len(m.selected))
+	}
+}
+
+func TestContextReloadPreservesSelectedItemProvenance(t *testing.T) {
+	m := NewModel(Dependencies{})
+	m.selected = []SelectedItem{{
+		Context: "dev", Namespace: "default", Type: "service", TargetID: "service:default:admin", Label: "admin", LocalPort: 3001,
+	}}
+
+	next, _ := m.Update(catalogLoadedMsg{result: CatalogResult{Context: "prod", Namespace: "default"}})
+	updated := next.(Model)
+
+	if len(updated.selected) != 1 || updated.selected[0].Context != "dev" || updated.selected[0].Namespace != "default" {
+		t.Fatalf("expected original selection provenance to survive reload, got %#v", updated.selected)
 	}
 }
 

@@ -1,6 +1,7 @@
 package tui
 
 type CatalogItem struct {
+	Context            string
 	Type               string
 	Namespace          string
 	Name               string
@@ -13,6 +14,9 @@ type CatalogItem struct {
 }
 
 type SelectedItem struct {
+	Context    string
+	Namespace  string
+	Type       string
 	TargetID   string
 	Label      string
 	LocalPort  int
@@ -41,8 +45,20 @@ type RunningItem struct {
 	Err        string
 }
 
-type RuntimeEvent struct {
-	TargetID string
-	Status   ForwardStatus
-	Err      string
+type forwardRef struct {
+	Context   string
+	Namespace string
+	TargetID  string
+}
+
+func (item CatalogItem) ref() forwardRef {
+	return forwardRef{Context: item.Context, Namespace: item.Namespace, TargetID: item.ID}
+}
+
+func (item SelectedItem) ref() forwardRef {
+	return forwardRef{Context: item.Context, Namespace: item.Namespace, TargetID: item.TargetID}
+}
+
+func (item RunningItem) ref() forwardRef {
+	return forwardRef{Context: item.Context, Namespace: item.Namespace, TargetID: item.TargetID}
 }

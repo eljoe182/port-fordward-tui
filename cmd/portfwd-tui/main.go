@@ -14,6 +14,7 @@ import (
 	"port-forward-tui/internal/adapters/configfile"
 	execadapter "port-forward-tui/internal/adapters/exec"
 	"port-forward-tui/internal/adapters/kubectl"
+	"port-forward-tui/internal/adapters/localport"
 	appruntime "port-forward-tui/internal/app/runtime"
 	"port-forward-tui/internal/tui"
 )
@@ -54,6 +55,7 @@ func bootstrap() (tui.Dependencies, error) {
 		ConfigStore: store,
 		Runtime:     runtime,
 		RuntimeApp:  runtimeApp,
+		LocalPorts:  localport.Checker{},
 	}, nil
 }
 

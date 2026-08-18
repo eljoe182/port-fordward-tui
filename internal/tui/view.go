@@ -58,6 +58,8 @@ func (m Model) View() string {
 		runningEntries := make([]components.RunningEntry, 0, len(m.running))
 		for _, entry := range m.running {
 			runningEntries = append(runningEntries, components.RunningEntry{
+				Context:    entry.Context,
+				Namespace:  entry.Namespace,
 				Label:      entry.Label,
 				LocalPort:  entry.LocalPort,
 				RemotePort: entry.RemotePort,
@@ -70,6 +72,8 @@ func (m Model) View() string {
 		selectedEntries := make([]components.SelectedEntry, 0, len(m.selected))
 		for _, entry := range m.selected {
 			selectedEntries = append(selectedEntries, components.SelectedEntry{
+				Context:    entry.Context,
+				Namespace:  entry.Namespace,
 				Label:      entry.Label,
 				LocalPort:  entry.LocalPort,
 				RemotePort: entry.RemotePort,

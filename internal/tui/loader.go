@@ -67,6 +67,7 @@ func LoadCatalog(ctx context.Context, deps Dependencies, opts catalog.LoadOption
 	items := make([]CatalogItem, 0, len(ranked))
 	for _, target := range ranked {
 		items = append(items, CatalogItem{
+			Context:            contextName,
 			Type:               string(target.Type),
 			Namespace:          target.Namespace,
 			Name:               target.Name,

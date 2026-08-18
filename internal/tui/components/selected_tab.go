@@ -6,6 +6,8 @@ import (
 )
 
 type SelectedEntry struct {
+	Context    string
+	Namespace  string
 	Label      string
 	LocalPort  int
 	RemotePort int
@@ -41,7 +43,7 @@ func SelectedTabWindow(data SelectedTabData, maxRows int) string {
 		if i == data.Cursor && data.EditingPort {
 			localPort = "[" + data.PortBuffer + "_]"
 		}
-		b.WriteString(fmt.Sprintf("%s%s  %s→%d\n", marker, entry.Label, localPort, entry.RemotePort))
+		b.WriteString(fmt.Sprintf("%s%s%s  %s→%d\n", marker, entry.Label, scopeLabel(entry.Context, entry.Namespace), localPort, entry.RemotePort))
 	}
 	if end < len(data.Entries) {
 		b.WriteString(fmt.Sprintf("  ↓ %d more\n", len(data.Entries)-end))
@@ -50,4 +52,18 @@ func SelectedTabWindow(data SelectedTabData, maxRows int) string {
 		b.WriteString("\n(editing local port — digits to type, Enter commit, Esc cancel)\n")
 	}
 	return b.String()
+}
+
+func scopeLabel(contextName, namespace string) string {
+	scope := contextName
+	if namespace != "" {
+		if scope != "" {
+			scope += "/"
+		}
+		scope += namespace
+	}
+	if scope == "" {
+		return ""
+	}
+	return " [" + scope + "]"
 }

@@ -29,54 +29,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case catalogErrorMsg:
 		m.errMsg = msg.err.Error()
 		return m, nil
-	case RuntimeEvent:
-		for i := range m.running {
-			if m.running[i].TargetID == msg.TargetID {
-				m.running[i].Status = msg.Status
-				m.running[i].Err = actionableError(msg.Err)
-			}
-		}
-		return m, nil
 	case forwardStartedMsg:
-		for i := range m.running {
-			if m.running[i].TargetID == msg.TargetID {
-				m.running[i].Status = StatusRunning
-				m.running[i].SessionID = msg.SessionID
-				m.running[i].Err = ""
-			}
-		}
+		m.applyForwardStarted(msg)
 		return m, nil
 	case forwardFailedMsg:
-		for i := range m.running {
-			if m.running[i].TargetID == msg.TargetID {
-				m.running[i].Status = StatusFailed
-				m.running[i].Err = actionableError(msg.Err)
-			}
-		}
+		m.applyForwardFailed(msg)
 		return m, nil
 	case forwardBatchMsg:
 		for _, started := range msg.started {
-			for i := range m.running {
-				if m.running[i].TargetID == started.TargetID {
-					m.running[i].Status = StatusRunning
-					m.running[i].SessionID = started.SessionID
-					m.running[i].Err = ""
-				}
-			}
+			m.applyForwardStarted(started)
 		}
 		for _, failed := range msg.failed {
-			for i := range m.running {
-				if m.running[i].TargetID == failed.TargetID {
-					m.running[i].Status = StatusFailed
-					m.running[i].Err = actionableError(failed.Err)
-				}
-			}
+			m.applyForwardFailed(failed)
 		}
 		return m, nil
 	case forwardStoppedMsg:
-		m.running = removeRunningByTarget(m.running, msg.TargetID)
+		m.running = removeRunningBySession(m.running, msg.SessionID)
 		if m.runningCursor >= len(m.running) {
 			m.runningCursor = maxInt(0, len(m.running)-1)
+		}
+		return m, nil
+	case forwardStopFailedMsg:
+		if idx := runningIndexBySession(m.running, msg.SessionID); idx >= 0 {
+			m.running[idx].Err = actionableError(msg.Err)
 		}
 		return m, nil
 	case forwardEventMsg:
@@ -253,18 +228,19 @@ func (m Model) startSelectedForwards() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	active := activeForwardSessions(m.running)
 	next := make([]RunningItem, 0, len(m.selected))
 	toStart := make([]SelectedItem, 0, len(m.selected))
 	for _, item := range m.selected {
-		if isAlreadyRunning(m.running, item.TargetID) {
+		if isAlreadyRunning(m.running, item.ref()) {
 			continue
 		}
 		toStart = append(toStart, item)
 		next = append(next, RunningItem{
 			TargetID:   item.TargetID,
-			Context:    m.contextName,
-			Namespace:  m.namespace,
-			Type:       string(targetTypeFromID(item.TargetID)),
+			Context:    item.Context,
+			Namespace:  item.Namespace,
+			Type:       item.Type,
 			Label:      item.Label,
 			LocalPort:  item.LocalPort,
 			RemotePort: item.RemotePort,
@@ -277,7 +253,7 @@ func (m Model) startSelectedForwards() (tea.Model, tea.Cmd) {
 	m.running = append(m.running, next...)
 	m.activeTab = TabRunning
 
-	cmds := []tea.Cmd{startForwardsCmd(m.ctx, m.deps.RuntimeApp, toStart, m.contextName, m.namespace, activeForwardSessions(m.running))}
+	cmds := []tea.Cmd{startForwardsCmd(m.ctx, m.deps.RuntimeApp, toStart, active)}
 	if persist := m.persistRecentSelections(toStart); persist != nil {
 		cmds = append(cmds, persist)
 	}
@@ -293,11 +269,12 @@ func (m Model) stopRunningUnderCursor() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	item := m.running[idx]
-	m.running = removeRunningByTarget(m.running, item.TargetID)
-	if m.runningCursor >= len(m.running) {
-		m.runningCursor = maxInt(0, len(m.running)-1)
+	if item.SessionID == "" {
+		m.errMsg = "forward is still starting"
+		return m, nil
 	}
-	return m, stopForwardCmd(m.ctx, m.deps.Runtime, item.TargetID, item.SessionID)
+	m.errMsg = ""
+	return m, stopForwardCmd(m.ctx, m.deps.Runtime, item.SessionID)
 }
 
 func (m Model) retryRunningUnderCursor() (tea.Model, tea.Cmd) {
@@ -312,50 +289,114 @@ func (m Model) retryRunningUnderCursor() (tea.Model, tea.Cmd) {
 	if item.Status != StatusFailed && item.Status != StatusStopped {
 		return m, nil
 	}
+	active := activeForwardSessions(m.running)
 	m.running[idx].Status = StatusStarting
 	m.running[idx].Err = ""
-	return m, retryForwardCmd(m.ctx, m.deps.RuntimeApp, m.running[idx], activeForwardSessions(m.running))
+	return m, retryForwardCmd(m.ctx, m.deps.RuntimeApp, m.running[idx], active)
 }
 
 func (m Model) applyForwardEvent(msg forwardEventMsg) (tea.Model, tea.Cmd) {
 	event := msg.event
-	switch event.Status {
-	case domain.ForwardStatusStopped:
-		m.running = removeRunningByTarget(m.running, event.TargetID)
-		if m.runningCursor >= len(m.running) {
-			m.runningCursor = maxInt(0, len(m.running)-1)
+	if !m.applyRuntimeEvent(event) && m.shouldBufferEvent(event) {
+		if m.pendingEvents == nil {
+			m.pendingEvents = map[string]domain.ForwardEvent{}
 		}
-	case domain.ForwardStatusFailed:
-		for i := range m.running {
-			if m.running[i].TargetID == event.TargetID {
-				m.running[i].Status = StatusFailed
-				m.running[i].Err = actionableError(event.Err)
-			}
-		}
-	case domain.ForwardStatusRunning:
-		for i := range m.running {
-			if m.running[i].TargetID == event.TargetID {
-				m.running[i].Status = StatusRunning
-				m.running[i].Err = ""
-			}
-		}
+		m.pendingEvents[event.SessionID] = event
 	}
 	return m, listenForwardEventsCmd(m.deps.Runtime)
 }
 
-func isAlreadyRunning(running []RunningItem, targetID string) bool {
-	for _, r := range running {
-		if r.TargetID == targetID {
+func (m *Model) applyForwardStarted(msg forwardStartedMsg) {
+	idx := runningIndexByRef(m.running, msg.Ref)
+	if idx < 0 {
+		return
+	}
+	m.running[idx].Status = StatusRunning
+	m.running[idx].SessionID = msg.SessionID
+	m.running[idx].Err = ""
+	if event, ok := m.pendingEvents[msg.SessionID]; ok {
+		delete(m.pendingEvents, msg.SessionID)
+		m.applyRuntimeEvent(event)
+	}
+}
+
+func (m *Model) applyForwardFailed(msg forwardFailedMsg) {
+	idx := runningIndexByRef(m.running, msg.Ref)
+	if idx < 0 {
+		return
+	}
+	m.running[idx].Status = StatusFailed
+	m.running[idx].Err = actionableError(msg.Err)
+}
+
+func (m *Model) applyRuntimeEvent(event domain.ForwardEvent) bool {
+	idx := runningIndexBySession(m.running, event.SessionID)
+	if idx < 0 {
+		return false
+	}
+
+	switch event.Status {
+	case domain.ForwardStatusStopped:
+		m.running = removeRunningBySession(m.running, event.SessionID)
+		if m.runningCursor >= len(m.running) {
+			m.runningCursor = maxInt(0, len(m.running)-1)
+		}
+	case domain.ForwardStatusFailed:
+		m.running[idx].Status = StatusFailed
+		m.running[idx].Err = actionableError(event.Err)
+	case domain.ForwardStatusRunning:
+		m.running[idx].Status = StatusRunning
+		m.running[idx].Err = ""
+	}
+	return true
+}
+
+func (m Model) shouldBufferEvent(event domain.ForwardEvent) bool {
+	if event.SessionID == "" {
+		return false
+	}
+	for _, item := range m.running {
+		if item.SessionID == "" && item.TargetID == event.TargetID {
 			return true
 		}
 	}
 	return false
 }
 
-func removeRunningByTarget(running []RunningItem, targetID string) []RunningItem {
+func isAlreadyRunning(running []RunningItem, ref forwardRef) bool {
+	for _, r := range running {
+		if r.ref() == ref {
+			return true
+		}
+	}
+	return false
+}
+
+func runningIndexByRef(running []RunningItem, ref forwardRef) int {
+	for i, item := range running {
+		if item.ref() == ref {
+			return i
+		}
+	}
+	return -1
+}
+
+func runningIndexBySession(running []RunningItem, sessionID string) int {
+	if sessionID == "" {
+		return -1
+	}
+	for i, item := range running {
+		if item.SessionID == sessionID {
+			return i
+		}
+	}
+	return -1
+}
+
+func removeRunningBySession(running []RunningItem, sessionID string) []RunningItem {
 	out := running[:0]
 	for _, r := range running {
-		if r.TargetID != targetID {
+		if r.SessionID != sessionID {
 			out = append(out, r)
 		}
 	}

@@ -17,7 +17,7 @@ func TestRuntimeEmitsFailedEventWhenProcessExitsUnexpectedly(t *testing.T) {
 		return exec.CommandContext(ctx, "sh", "-c", "exit 3")
 	})
 
-	_, err := runtime.Start(context.Background(), domain.ForwardRequest{TargetID: "service:admin"})
+	sessionID, err := runtime.Start(context.Background(), domain.ForwardRequest{TargetID: "service:admin"})
 	if err != nil {
 		t.Fatalf("start failed: %v", err)
 	}
@@ -28,6 +28,9 @@ func TestRuntimeEmitsFailedEventWhenProcessExitsUnexpectedly(t *testing.T) {
 	}
 	if event.TargetID != "service:admin" {
 		t.Fatalf("expected target id preserved, got %q", event.TargetID)
+	}
+	if event.SessionID != sessionID {
+		t.Fatalf("expected session id %q, got %q", sessionID, event.SessionID)
 	}
 	if event.Err == "" {
 		t.Fatalf("expected error message populated on failure")

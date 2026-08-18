@@ -1,13 +1,13 @@
 # portfwd-tui
 
-TUI en Go + Bubble Tea para gestionar `kubectl port-forward` sobre múltiples targets
-(services y pods) con descubrimiento híbrido, persistencia local y runtime no destructivo.
+Go + Bubble Tea TUI for managing `kubectl port-forward` across multiple targets
+(services and pods) with hybrid discovery, local persistence, and a non-destructive runtime.
 
-## Requisitos
+## Requirements
 
 - Go 1.24+ (see `go.mod`)
-- `kubectl` disponible en el `PATH`
-- Acceso a un cluster Kubernetes con contexts configurados
+- `kubectl` available on `PATH`
+- Access to a Kubernetes cluster with configured contexts
 
 ## Install (Homebrew)
 
@@ -56,50 +56,78 @@ GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o d
 
 End users only need the built executable plus `kubectl` and a valid cluster context; they do not need Go installed.
 
-## Atajos de teclado
+## Keyboard shortcuts
 
-| Tecla        | Acción                                                       |
-| ------------ | ------------------------------------------------------------ |
-| `↑` / `k`    | Cursor arriba en catálogo                                    |
-| `↓` / `j`    | Cursor abajo en catálogo                                     |
-| `Enter`      | Agregar target bajo el cursor a `Selected`                   |
-| `f`          | Alternar favorito sobre el target bajo el cursor             |
-| `c`          | Cambiar al siguiente contexto y recargar catálogo            |
-| `n`          | Cambiar al siguiente namespace y recargar catálogo           |
-| `r`          | Refrescar catálogo usando contexto/namespace actual          |
-| `s`          | Iniciar port-forwards para todos los items en `Selected`     |
-| `x`          | Detener el forward bajo el cursor en tab `Running`           |
-| `Tab`        | Alternar entre tabs `Selected` / `Running`                   |
-| `Esc`        | Limpiar el error actual del header                           |
-| `q` / `Ctrl+C` | Salir con cleanup ordenado                                 |
+| Key            | Action                                                    |
+| -------------- | --------------------------------------------------------- |
+| `↑` / `k`      | Move the catalog cursor up                                |
+| `↓` / `j`      | Move the catalog cursor down                              |
+| `Enter`        | Add the target under the cursor to `Selected`             |
+| `f`            | Toggle favorite for the target under the cursor           |
+| `c`            | Open the context selector and reload the catalog          |
+| `n`            | Open the namespace selector and reload the catalog        |
+| `r`            | Refresh the catalog for the current context and namespace |
+| `s`            | Start port-forwards for every item in `Selected`          |
+| `x`            | Stop the highlighted forward in the `Running` tab         |
+| `R`            | Retry the highlighted failed forward                      |
+| `e`            | Edit the highlighted local port in `Selected`             |
+| `J` / `K`      | Move the cursor within the active tab                     |
+| `/`            | Search the catalog                                        |
+| `t`            | Open the filter selector                                  |
+| `o`            | Open the sort selector                                    |
+| `Tab`          | Switch between the `Selected` and `Running` tabs          |
+| `Esc`          | Clear the current header error                            |
+| `q` / `Ctrl+C` | Exit with orderly cleanup                                 |
 
-## Persistencia
+## Multi-context selection
 
-La configuración vive en JSON:
+`Selected` keeps its targets when you change context or namespace. Each row
+stores and displays its source context, so you can select a target in `dev`,
+switch to `prod`, and press `s` once to start both forwards. Active processes
+are independent: stopping or retrying one does not affect a homonymous target
+from another context.
+
+When you add a target, the TUI keeps its preferred port when that port is
+available. If the port is already reserved by another selection, an active
+forward, or another local process, the TUI chooses the next available port.
+This fallback is temporary and does not replace the saved preference; explicit
+changes made with `e` are persisted.
+
+The local availability check is preventive. `kubectl` remains the final
+authority because another process can claim the port between the check and
+startup.
+
+## Persistence
+
+Configuration is stored as JSON:
 
 - Linux: `~/.config/portfwd-tui/config.json`
 - macOS: `~/Library/Application Support/portfwd-tui/config.json`
 - Windows: `%AppData%\portfwd-tui\config.json`
-- Override: `PORTFWD_TUI_CONFIG_DIR=/ruta/custom`
+- Override: `PORTFWD_TUI_CONFIG_DIR=/custom/path`
 
-La config guarda, por target, alias, puerto local preferido, favoritos, metadata mínima del target y recencia de uso.
+For each target, the configuration stores its alias, preferred local port,
+favorite status, minimal metadata, and recent-use information.
 
-## Arquitectura
+## Architecture
 
 ```
 cmd/portfwd-tui/          composition root
 internal/domain/          Target, ForwardSession, AppConfig
 internal/app/catalog/     merge + ranking Smart
-internal/app/runtime/     validación + orquestación de forwards
+internal/app/runtime/     validation + forward orchestration
 internal/ports/           interfaces (Kubernetes, ConfigStore, ForwardRunner)
 internal/adapters/        kubectl, configfile, exec (os/exec)
 internal/tui/             Bubble Tea Model + Update + View
-test/integration/         integración con kubectl real (opt-in)
+test/integration/         real kubectl integration (opt-in)
 ```
 
 ## Tests
 
 ```bash
-go test ./... -short     # unit tests
-go test ./...            # incluye integration (kubectl real requerido)
+go test ./...
+go vet ./...
 ```
+
+The tests under `test/integration/` are placeholders skipped with `t.Skip`. In
+the current state, `-short` does not change which tests run.
