@@ -36,43 +36,45 @@ type Dependencies struct {
 }
 
 type Model struct {
-	deps           Dependencies
-	ctx            context.Context
-	activeTab      Tab
-	contexts       []string
-	namespaces     []string
-	contextName    string
-	namespace      string
-	query          string
-	queryBuffer    string
-	filterMode     catalog.FilterMode
-	sortMode       catalog.SortMode
-	modalKind      ModalKind
-	modalCursor    int
-	modalInput     string
-	catalog        []CatalogItem
-	cursor         int
-	selected       []SelectedItem
-	selectedCursor int
-	editingPort    bool
-	portBuffer     string
-	running        []RunningItem
-	runningCursor  int
-	pendingEvents  map[string]domain.ForwardEvent
-	width          int
-	height         int
-	errMsg         string
+	deps            Dependencies
+	ctx             context.Context
+	activeTab       Tab
+	contexts        []string
+	namespaces      []string
+	contextName     string
+	namespace       string
+	query           string
+	queryBuffer     string
+	filterMode      catalog.FilterMode
+	sortMode        catalog.SortMode
+	modalKind       ModalKind
+	modalCursor     int
+	modalInput      string
+	catalog         []CatalogItem
+	cursor          int
+	selected        []SelectedItem
+	selectedCursor  int
+	editingPort     bool
+	portBuffer      string
+	running         []RunningItem
+	runningCursor   int
+	pendingEvents   map[string]domain.ForwardEvent
+	pendingRemovals map[forwardRef]string
+	width           int
+	height          int
+	errMsg          string
 }
 
 func NewModel(deps Dependencies) Model {
 	return Model{
-		deps:          deps,
-		ctx:           context.Background(),
-		activeTab:     TabSelected,
-		filterMode:    catalog.FilterAll,
-		sortMode:      catalog.SortSmart,
-		catalog:       []CatalogItem{},
-		pendingEvents: map[string]domain.ForwardEvent{},
+		deps:            deps,
+		ctx:             context.Background(),
+		activeTab:       TabSelected,
+		filterMode:      catalog.FilterAll,
+		sortMode:        catalog.SortSmart,
+		catalog:         []CatalogItem{},
+		pendingEvents:   map[string]domain.ForwardEvent{},
+		pendingRemovals: map[forwardRef]string{},
 	}
 }
 

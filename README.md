@@ -68,7 +68,7 @@ End users only need the built executable plus `kubectl` and a valid cluster cont
 | `n`            | Open the namespace selector and reload the catalog        |
 | `r`            | Refresh the catalog for the current context and namespace |
 | `s`            | Start port-forwards for every item in `Selected`          |
-| `x`            | Stop the highlighted forward in the `Running` tab         |
+| `x`            | Remove/stop in `Selected`; stop in `Running`               |
 | `R`            | Retry the highlighted failed forward                      |
 | `e`            | Edit the highlighted local port in `Selected`             |
 | `J` / `K`      | Move the cursor within the active tab                     |
@@ -86,6 +86,12 @@ stores and displays its source context, so you can select a target in `dev`,
 switch to `prod`, and press `s` once to start both forwards. Active processes
 are independent: stopping or retrying one does not affect a homonymous target
 from another context.
+
+Pressing `x` in `Selected` removes the highlighted target. If its matching
+forward is starting or running, the TUI stops it first and removes both rows
+after confirmation; a startup failure completes the removal automatically.
+Pressing `x` in `Running` stops only that forward and keeps its selection
+available for another start.
 
 When you add a target, the TUI keeps its preferred port when that port is
 available. If the port is already reserved by another selection, an active
