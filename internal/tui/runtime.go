@@ -22,12 +22,16 @@ type forwardFailedMsg struct {
 }
 
 type forwardStoppedMsg struct {
-	SessionID string
+	SessionID      string
+	Ref            forwardRef
+	RemoveSelected bool
 }
 
 type forwardStopFailedMsg struct {
-	SessionID string
-	Err       string
+	SessionID      string
+	Ref            forwardRef
+	RemoveSelected bool
+	Err            string
 }
 
 type forwardBatchMsg struct {
@@ -73,12 +77,12 @@ func startForwardsCmd(ctx context.Context, svc appruntime.Service, selected []Se
 	}
 }
 
-func stopForwardCmd(ctx context.Context, runner ports.ForwardRunner, sessionID string) tea.Cmd {
+func stopForwardCmd(ctx context.Context, runner ports.ForwardRunner, sessionID string, ref forwardRef, removeSelected bool) tea.Cmd {
 	return func() tea.Msg {
 		if err := runner.Stop(ctx, sessionID); err != nil {
-			return forwardStopFailedMsg{SessionID: sessionID, Err: err.Error()}
+			return forwardStopFailedMsg{SessionID: sessionID, Ref: ref, RemoveSelected: removeSelected, Err: err.Error()}
 		}
-		return forwardStoppedMsg{SessionID: sessionID}
+		return forwardStoppedMsg{SessionID: sessionID, Ref: ref, RemoveSelected: removeSelected}
 	}
 }
 
