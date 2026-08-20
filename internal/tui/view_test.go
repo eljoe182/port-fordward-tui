@@ -15,7 +15,7 @@ func TestViewRendersWorkspaceWithCatalogAndPanelTabs(t *testing.T) {
 
 	view := m.View()
 
-	for _, snippet := range []string{"Catalog", "Panel", "Selected", "Running", "admin", "ctx=dev", "ns=cco", "[dev/cco]"} {
+	for _, snippet := range []string{"Catalog", "Panel", "Selected", "Running", "admin", "ctx=dev", "ns=cco", "[dev/cco]", "x remove/stop"} {
 		if !strings.Contains(view, snippet) {
 			t.Fatalf("expected view to contain %q, got:\n%s", snippet, view)
 		}

@@ -30,28 +30,41 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.errMsg = msg.err.Error()
 		return m, nil
 	case forwardStartedMsg:
-		m.applyForwardStarted(msg)
-		return m, nil
+		return m, m.applyForwardStarted(msg)
 	case forwardFailedMsg:
 		m.applyForwardFailed(msg)
 		return m, nil
 	case forwardBatchMsg:
+		var cmds []tea.Cmd
 		for _, started := range msg.started {
-			m.applyForwardStarted(started)
+			if cmd := m.applyForwardStarted(started); cmd != nil {
+				cmds = append(cmds, cmd)
+			}
 		}
 		for _, failed := range msg.failed {
 			m.applyForwardFailed(failed)
 		}
-		return m, nil
-	case forwardStoppedMsg:
-		m.running = removeRunningBySession(m.running, msg.SessionID)
-		if m.runningCursor >= len(m.running) {
-			m.runningCursor = maxInt(0, len(m.running)-1)
+		if len(cmds) == 0 {
+			return m, nil
 		}
+		return m, tea.Batch(cmds...)
+	case forwardStoppedMsg:
+		if msg.RemoveSelected && m.pendingRemovalMatches(msg.Ref, msg.SessionID) {
+			m.completeSelectedRemoval(msg.Ref)
+			return m, nil
+		}
+		removedIdx := runningIndexBySession(m.running, msg.SessionID)
+		m.running = removeRunningBySession(m.running, msg.SessionID)
+		m.runningCursor = cursorAfterRemoval(m.runningCursor, removedIdx, len(m.running))
 		return m, nil
 	case forwardStopFailedMsg:
+		errMsg := actionableError(msg.Err)
 		if idx := runningIndexBySession(m.running, msg.SessionID); idx >= 0 {
-			m.running[idx].Err = actionableError(msg.Err)
+			m.running[idx].Err = errMsg
+		}
+		if msg.RemoveSelected && m.pendingRemovalMatches(msg.Ref, msg.SessionID) {
+			delete(m.pendingRemovals, msg.Ref)
+			m.errMsg = errMsg
 		}
 		return m, nil
 	case forwardEventMsg:
@@ -126,6 +139,9 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "s":
 		return m.startSelectedForwards()
 	case "x":
+		if m.activeTab == TabSelected {
+			return m.removeSelectedUnderCursor()
+		}
 		return m.stopRunningUnderCursor()
 	case "R":
 		return m.retryRunningUnderCursor()
@@ -186,6 +202,46 @@ func (m Model) enterPortEditMode() Model {
 	m.portBuffer = strconv.Itoa(m.selected[m.selectedCursor].LocalPort)
 	m.errMsg = ""
 	return m
+}
+
+func (m Model) removeSelectedUnderCursor() (tea.Model, tea.Cmd) {
+	if m.activeTab != TabSelected || m.selectedCursor < 0 || m.selectedCursor >= len(m.selected) {
+		return m, nil
+	}
+
+	ref := m.selected[m.selectedCursor].ref()
+	m.errMsg = ""
+	runningIdx := runningIndexByRef(m.running, ref)
+	if runningIdx < 0 {
+		m.completeSelectedRemoval(ref)
+		return m, nil
+	}
+	if m.hasPendingRemoval(ref) {
+		return m, nil
+	}
+
+	running := m.running[runningIdx]
+	if running.Status == StatusFailed || running.Status == StatusStopped {
+		m.completeSelectedRemoval(ref)
+		return m, nil
+	}
+	if m.pendingRemovals == nil {
+		m.pendingRemovals = map[forwardRef]string{}
+	}
+	if running.Status == StatusStarting {
+		m.pendingRemovals[ref] = ""
+		return m, nil
+	}
+	if running.SessionID == "" {
+		m.errMsg = "forward session unavailable"
+		return m, nil
+	}
+	if m.deps.Runtime == nil {
+		m.errMsg = "forward runtime unavailable"
+		return m, nil
+	}
+	m.pendingRemovals[ref] = running.SessionID
+	return m, stopForwardCmd(m.ctx, m.deps.Runtime, running.SessionID, ref, true)
 }
 
 func (m Model) handleEditPortKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -269,12 +325,12 @@ func (m Model) stopRunningUnderCursor() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	item := m.running[idx]
-	if item.SessionID == "" {
+	if item.Status == StatusStarting || item.SessionID == "" {
 		m.errMsg = "forward is still starting"
 		return m, nil
 	}
 	m.errMsg = ""
-	return m, stopForwardCmd(m.ctx, m.deps.Runtime, item.SessionID)
+	return m, stopForwardCmd(m.ctx, m.deps.Runtime, item.SessionID, item.ref(), false)
 }
 
 func (m Model) retryRunningUnderCursor() (tea.Model, tea.Cmd) {
@@ -291,6 +347,7 @@ func (m Model) retryRunningUnderCursor() (tea.Model, tea.Cmd) {
 	}
 	active := activeForwardSessions(m.running)
 	m.running[idx].Status = StatusStarting
+	m.running[idx].SessionID = ""
 	m.running[idx].Err = ""
 	return m, retryForwardCmd(m.ctx, m.deps.RuntimeApp, m.running[idx], active)
 }
@@ -306,10 +363,10 @@ func (m Model) applyForwardEvent(msg forwardEventMsg) (tea.Model, tea.Cmd) {
 	return m, listenForwardEventsCmd(m.deps.Runtime)
 }
 
-func (m *Model) applyForwardStarted(msg forwardStartedMsg) {
+func (m *Model) applyForwardStarted(msg forwardStartedMsg) tea.Cmd {
 	idx := runningIndexByRef(m.running, msg.Ref)
 	if idx < 0 {
-		return
+		return nil
 	}
 	m.running[idx].Status = StatusRunning
 	m.running[idx].SessionID = msg.SessionID
@@ -318,6 +375,7 @@ func (m *Model) applyForwardStarted(msg forwardStartedMsg) {
 		delete(m.pendingEvents, msg.SessionID)
 		m.applyRuntimeEvent(event)
 	}
+	return m.continuePendingRemoval(msg.Ref)
 }
 
 func (m *Model) applyForwardFailed(msg forwardFailedMsg) {
@@ -327,6 +385,9 @@ func (m *Model) applyForwardFailed(msg forwardFailedMsg) {
 	}
 	m.running[idx].Status = StatusFailed
 	m.running[idx].Err = actionableError(msg.Err)
+	if m.hasPendingRemoval(msg.Ref) {
+		m.completeSelectedRemoval(msg.Ref)
+	}
 }
 
 func (m *Model) applyRuntimeEvent(event domain.ForwardEvent) bool {
@@ -334,14 +395,22 @@ func (m *Model) applyRuntimeEvent(event domain.ForwardEvent) bool {
 	if idx < 0 {
 		return false
 	}
+	ref := m.running[idx].ref()
 
 	switch event.Status {
 	case domain.ForwardStatusStopped:
-		m.running = removeRunningBySession(m.running, event.SessionID)
-		if m.runningCursor >= len(m.running) {
-			m.runningCursor = maxInt(0, len(m.running)-1)
+		if m.hasPendingRemoval(ref) {
+			m.completeSelectedRemoval(ref)
+			return true
 		}
+		removedIdx := idx
+		m.running = removeRunningBySession(m.running, event.SessionID)
+		m.runningCursor = cursorAfterRemoval(m.runningCursor, removedIdx, len(m.running))
 	case domain.ForwardStatusFailed:
+		if m.hasPendingRemoval(ref) {
+			m.completeSelectedRemoval(ref)
+			return true
+		}
 		m.running[idx].Status = StatusFailed
 		m.running[idx].Err = actionableError(event.Err)
 	case domain.ForwardStatusRunning:
@@ -349,6 +418,52 @@ func (m *Model) applyRuntimeEvent(event domain.ForwardEvent) bool {
 		m.running[idx].Err = ""
 	}
 	return true
+}
+
+func (m *Model) continuePendingRemoval(ref forwardRef) tea.Cmd {
+	if !m.hasPendingRemoval(ref) {
+		return nil
+	}
+	idx := runningIndexByRef(m.running, ref)
+	if idx < 0 {
+		m.completeSelectedRemoval(ref)
+		return nil
+	}
+	item := m.running[idx]
+	if item.Status == StatusFailed || item.Status == StatusStopped {
+		m.completeSelectedRemoval(ref)
+		return nil
+	}
+	if item.Status == StatusStarting || item.SessionID == "" {
+		return nil
+	}
+	if m.deps.Runtime == nil {
+		delete(m.pendingRemovals, ref)
+		m.errMsg = "forward runtime unavailable"
+		return nil
+	}
+	m.pendingRemovals[ref] = item.SessionID
+	return stopForwardCmd(m.ctx, m.deps.Runtime, item.SessionID, ref, true)
+}
+
+func (m Model) hasPendingRemoval(ref forwardRef) bool {
+	_, ok := m.pendingRemovals[ref]
+	return ok
+}
+
+func (m Model) pendingRemovalMatches(ref forwardRef, sessionID string) bool {
+	pendingSessionID, ok := m.pendingRemovals[ref]
+	return ok && pendingSessionID == sessionID
+}
+
+func (m *Model) completeSelectedRemoval(ref forwardRef) {
+	selectedIdx := selectedIndexByRef(m.selected, ref)
+	runningIdx := runningIndexByRef(m.running, ref)
+	m.selected = removeSelectedByRef(m.selected, ref)
+	m.running = removeRunningByRef(m.running, ref)
+	delete(m.pendingRemovals, ref)
+	m.selectedCursor = cursorAfterRemoval(m.selectedCursor, selectedIdx, len(m.selected))
+	m.runningCursor = cursorAfterRemoval(m.runningCursor, runningIdx, len(m.running))
 }
 
 func (m Model) shouldBufferEvent(event domain.ForwardEvent) bool {
@@ -401,6 +516,51 @@ func removeRunningBySession(running []RunningItem, sessionID string) []RunningIt
 		}
 	}
 	return out
+}
+
+func removeSelectedByRef(selected []SelectedItem, ref forwardRef) []SelectedItem {
+	out := selected[:0]
+	for _, item := range selected {
+		if item.ref() != ref {
+			out = append(out, item)
+		}
+	}
+	return out
+}
+
+func selectedIndexByRef(selected []SelectedItem, ref forwardRef) int {
+	for i, item := range selected {
+		if item.ref() == ref {
+			return i
+		}
+	}
+	return -1
+}
+
+func removeRunningByRef(running []RunningItem, ref forwardRef) []RunningItem {
+	out := running[:0]
+	for _, item := range running {
+		if item.ref() != ref {
+			out = append(out, item)
+		}
+	}
+	return out
+}
+
+func cursorAfterRemoval(cursor, removedIdx, remaining int) int {
+	if remaining == 0 {
+		return 0
+	}
+	if removedIdx >= 0 && removedIdx < cursor {
+		cursor--
+	}
+	if cursor < 0 {
+		return 0
+	}
+	if cursor >= remaining {
+		return remaining - 1
+	}
+	return cursor
 }
 
 func maxInt(a, b int) int {
