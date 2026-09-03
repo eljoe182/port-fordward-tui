@@ -123,6 +123,8 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch string(msg.Runes) {
 	case "/":
 		return m.openSearchModal(), nil
+	case "?":
+		return m.openExtraModal(), nil
 	case "c":
 		return m.openContextModal(), nil
 	case "n":

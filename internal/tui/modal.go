@@ -1,10 +1,9 @@
 package tui
 
 import (
-	"fmt"
-
 	"port-forward-tui/internal/app/catalog"
 	"port-forward-tui/internal/domain"
+	"port-forward-tui/internal/tui/components"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -52,6 +51,13 @@ func (m Model) openSearchModal() Model {
 	m.modalKind = ModalSearch
 	m.modalCursor = 0
 	m.modalInput = m.query
+	return m
+}
+
+func (m Model) openExtraModal() Model {
+	m.modalKind = ModalExtra
+	m.modalCursor = 0
+	m.modalInput = ""
 	return m
 }
 
@@ -108,6 +114,9 @@ func (m Model) handleModalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.modalKind == ModalSearch {
 		return m.handleSearchModalKey(msg)
 	}
+	if m.modalKind == ModalExtra {
+		return m.handleExtraModalKey(msg)
+	}
 
 	options := m.modalOptions()
 	if len(options) == 0 {
@@ -142,6 +151,16 @@ func (m Model) handleModalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	return m, nil
+}
+
+func (m Model) handleExtraModalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.Type {
+	case tea.KeyEsc:
+		return m.closeModal(), nil
+	case tea.KeyCtrlC:
+		return m, tea.Quit
+	}
 	return m, nil
 }
 
@@ -221,9 +240,21 @@ func indexModalOption(options []modalOption, value string) int {
 func (m Model) renderModal() string {
 	switch m.modalKind {
 	case ModalSearch:
-		return renderSearchModal(m.modalInput)
+		return components.TextModal(modalTitle(m.modalKind), m.modalInput)
+	case ModalExtra:
+		return components.HelpModal("Extra", []string{
+			"ctrl+r aks sync",
+			"r refresh",
+			"R retry failed forward",
+			"q quit",
+		})
 	case ModalContext, ModalNamespace, ModalFilter, ModalSort:
-		return renderSelectorModal(modalTitle(m.modalKind), m.modalOptions(), m.modalCursor)
+		options := m.modalOptions()
+		items := make([]components.ModalOption, 0, len(options))
+		for _, option := range options {
+			items = append(items, components.ModalOption{Label: option.Label})
+		}
+		return components.ListModal(modalTitle(m.modalKind), items, m.modalCursor)
 	default:
 		return ""
 	}
@@ -241,11 +272,9 @@ func modalTitle(kind ModalKind) string {
 		return "Select sort"
 	case ModalSearch:
 		return "Search catalog"
+	case ModalExtra:
+		return "Extra"
 	default:
 		return "Selector"
 	}
-}
-
-func renderSearchModal(input string) string {
-	return fmt.Sprintf("Search catalog\n\nquery: [%s_]\n\nEnter apply • Esc cancel", input)
 }

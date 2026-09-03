@@ -227,3 +227,28 @@ func TestFilterAndSortKeysCycleModes(t *testing.T) {
 		t.Fatalf("expected name sort, got %s", m.sortMode)
 	}
 }
+
+func TestQuestionMarkOpensExtraModalAndEscCloses(t *testing.T) {
+	m := NewModel(Dependencies{})
+	m = pressKey(t, m, "?")
+	if m.modalKind != ModalExtra {
+		t.Fatalf("expected Extra modal, got %q", m.modalKind)
+	}
+	m = pressSpecial(t, m, tea.KeyEsc)
+	if m.modalKind != ModalNone {
+		t.Fatalf("expected Extra modal closed, got %q", m.modalKind)
+	}
+}
+
+func TestExtraModalIgnoresNavigationKeys(t *testing.T) {
+	m := NewModel(Dependencies{})
+	m = pressKey(t, m, "?")
+	m = pressKey(t, m, "j")
+	if m.modalKind != ModalExtra {
+		t.Fatalf("Extra modal should stay open on j, got %q", m.modalKind)
+	}
+	m = pressKey(t, m, "c")
+	if m.modalKind != ModalExtra {
+		t.Fatalf("Extra modal should stay open on c, got %q", m.modalKind)
+	}
+}

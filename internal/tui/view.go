@@ -2,10 +2,12 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 
 	"port-forward-tui/internal/tui/components"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 )
 
 var (
@@ -13,8 +15,7 @@ var (
 	panelStyle       = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(0, 1)
 	activeTabStyle   = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("86"))
 	inactiveTabStyle = lipgloss.NewStyle().Faint(true)
-	modalStyle       = lipgloss.NewStyle().Border(lipgloss.ThickBorder()).Padding(1, 2).Width(54).Foreground(lipgloss.Color("230")).Background(lipgloss.Color("236"))
-	modalActiveStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("86"))
+	panelHintStyle   = lipgloss.NewStyle().Faint(true)
 )
 
 const (
@@ -25,17 +26,12 @@ const (
 
 func (m Model) View() string {
 	header := components.Header(components.HeaderData{
-		ActiveTab:   string(m.activeTab),
-		Context:     m.contextName,
-		Namespace:   m.namespace,
-		Query:       m.query,
-		Filter:      string(m.filterMode),
-		Sort:        string(m.sortMode),
-		Searching:   m.modalKind == ModalSearch,
-		QueryBuffer: m.modalInput,
-		Err:         m.errMsg,
+		Query:  m.query,
+		Filter: string(m.filterMode),
+		Sort:   string(m.sortMode),
+		Err:    m.errMsg,
 	})
-	footer := components.Footer(string(m.activeTab))
+	footer := components.Footer(m.contextName, m.namespace)
 	bodyHeight := fixedPaneHeight
 
 	catalogItems := make([]components.Item, 0, len(m.catalog))
@@ -53,6 +49,7 @@ func (m Model) View() string {
 	catalog := renderPane("Catalog", components.CatalogWindow(catalogItems, m.cursor, bodyHeight-2), catalogPaneWidth, bodyHeight)
 
 	var panelBody string
+	var panelHints string
 	switch m.activeTab {
 	case TabRunning:
 		runningEntries := make([]components.RunningEntry, 0, len(m.running))
@@ -67,7 +64,8 @@ func (m Model) View() string {
 				Err:        entry.Err,
 			})
 		}
-		panelBody = components.RunningTabWindow(runningEntries, m.runningCursor, bodyHeight-2)
+		panelBody = components.RunningTabWindow(runningEntries, m.runningCursor, bodyHeight-4)
+		panelHints = components.PanelHintsRunning
 	default:
 		selectedEntries := make([]components.SelectedEntry, 0, len(m.selected))
 		for _, entry := range m.selected {
@@ -84,14 +82,38 @@ func (m Model) View() string {
 			Cursor:      m.selectedCursor,
 			EditingPort: m.editingPort,
 			PortBuffer:  m.portBuffer,
-		}, bodyHeight-2)
+		}, bodyHeight-4)
+		panelHints = components.PanelHintsSelected
+	}
+	if panelHints != "" {
+		panelBody = strings.TrimRight(panelBody, "\n") + "\n\n" + panelHintStyle.Render(panelHints)
 	}
 	rightPane := renderPane(renderTabs(m.activeTab), panelBody, sidePaneWidth, bodyHeight)
 	workspace := workspaceStyle.Render(lipgloss.JoinHorizontal(lipgloss.Top, catalog, rightPane))
-	if modal := m.renderModal(); modal != "" {
-		return header + "\n" + workspace + "\n\n" + modalStyle.Render(modal) + "\n" + footer
+	base := header + "\n" + workspace + "\n" + footer
+
+	modal := m.renderModal()
+	if modal == "" {
+		return base
 	}
-	return header + "\n" + workspace + "\n" + footer
+
+	width := m.width
+	height := m.height
+	baseWidth := lipgloss.Width(base)
+	baseHeight := lipgloss.Height(base)
+	if width < baseWidth {
+		width = baseWidth
+	}
+	if height < baseHeight {
+		height = baseHeight
+	}
+	if width <= 0 {
+		width = baseWidth
+	}
+	if height <= 0 {
+		height = baseHeight
+	}
+	return placeOverlay(width, height, base, modal)
 }
 
 func renderPane(title, body string, width, height int) string {
@@ -115,18 +137,81 @@ func renderTabs(active Tab) string {
 	return fmt.Sprintf("Panel  [%s] [%s]", selected, running)
 }
 
-func renderSelectorModal(title string, options []modalOption, cursor int) string {
-	var out string
-	out += lipgloss.NewStyle().Bold(true).Render(title) + "\n\n"
-	for i, option := range options {
-		prefix := "  "
-		label := option.Label
-		if i == cursor {
-			prefix = "▶ "
-			label = modalActiveStyle.Render(label)
-		}
-		out += prefix + label + "\n"
+// placeOverlay composites overlay centered on top of base. Output uses \n only
+// (Bubble Tea breaks if View contains \r from sources like cellbuf.Render).
+func placeOverlay(width, height int, base, overlay string) string {
+	if width < 1 {
+		width = 1
 	}
-	out += "\nEnter select • Esc cancel • ↑/↓ or j/k navigate"
-	return out
+	if height < 1 {
+		height = 1
+	}
+	base = normalizeNewlines(base)
+	overlay = normalizeNewlines(overlay)
+
+	baseLines := strings.Split(strings.TrimRight(base, "\n"), "\n")
+	for len(baseLines) < height {
+		baseLines = append(baseLines, "")
+	}
+	if len(baseLines) > height {
+		baseLines = baseLines[:height]
+	}
+	for i := range baseLines {
+		baseLines[i] = padVisual(baseLines[i], width)
+	}
+
+	overlayLines := strings.Split(strings.TrimRight(overlay, "\n"), "\n")
+	ow := 0
+	for _, line := range overlayLines {
+		if w := ansi.StringWidth(line); w > ow {
+			ow = w
+		}
+	}
+	oh := len(overlayLines)
+	if ow > width {
+		ow = width
+	}
+	if oh > height {
+		oh = height
+		overlayLines = overlayLines[:oh]
+	}
+	x := (width - ow) / 2
+	y := (height - oh) / 2
+	if x < 0 {
+		x = 0
+	}
+	if y < 0 {
+		y = 0
+	}
+
+	for i, line := range overlayLines {
+		row := y + i
+		if row < 0 || row >= len(baseLines) {
+			continue
+		}
+		mid := padVisual(line, ow)
+		if ansi.StringWidth(mid) > ow {
+			mid = ansi.Truncate(mid, ow, "")
+		}
+		left := ansi.Cut(baseLines[row], 0, x)
+		right := ansi.Cut(baseLines[row], x+ow, width+1)
+		baseLines[row] = left + mid + right
+	}
+	return strings.Join(baseLines, "\n")
+}
+
+func normalizeNewlines(s string) string {
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	return strings.ReplaceAll(s, "\r", "")
+}
+
+func padVisual(line string, width int) string {
+	w := ansi.StringWidth(line)
+	if w > width {
+		return ansi.Truncate(line, width, "")
+	}
+	if w < width {
+		return line + strings.Repeat(" ", width-w)
+	}
+	return line
 }

@@ -67,6 +67,10 @@ End users only need the built executable plus `kubectl` and a valid cluster cont
 | `f`            | Toggle favorite for the target under the cursor           |
 | `c`            | Open the context selector and reload the catalog          |
 | `n`            | Open the namespace selector and reload the catalog        |
+| `/`            | Open the search modal                                     |
+| `t`            | Open the filter selector                                  |
+| `o`            | Open the sort selector                                    |
+| `?`            | Open the Extra help modal (secondary shortcuts)           |
 | `r`            | Refresh the catalog for the current context and namespace |
 | `Ctrl+R`       | Sync Azure AKS credentials into kubeconfig, then refresh |
 | `s`            | Start port-forwards for every item in `Selected`          |
@@ -74,12 +78,11 @@ End users only need the built executable plus `kubectl` and a valid cluster cont
 | `R`            | Retry the highlighted failed forward                      |
 | `e`            | Edit the highlighted local port in `Selected`             |
 | `J` / `K`      | Move the cursor within the active tab                     |
-| `/`            | Search the catalog                                        |
-| `t`            | Open the filter selector                                  |
-| `o`            | Open the sort selector                                    |
 | `Tab`          | Switch between the `Selected` and `Running` tabs          |
-| `Esc`          | Clear the current header error                            |
+| `Esc`          | Close the active modal, or clear the header error         |
 | `q` / `Ctrl+C` | Exit with orderly cleanup                                 |
+
+Secondary shortcuts (`Ctrl+R`, `r`, `R`, `q`) are listed in the Extra modal (`?`) so the footer stays lean. Panel-local shortcuts (`J`/`K`, `e`, `s`, `x`, …) appear at the bottom of the right panel.
 
 ## Multi-context selection
 

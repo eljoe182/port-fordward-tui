@@ -25,6 +25,7 @@ const (
 	ModalFilter    ModalKind = "filter"
 	ModalSort      ModalKind = "sort"
 	ModalSearch    ModalKind = "search"
+	ModalExtra     ModalKind = "extra"
 )
 
 type Dependencies struct {

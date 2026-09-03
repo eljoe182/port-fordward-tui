@@ -21,10 +21,16 @@ func Catalog(items []Item, cursor int) string {
 
 func CatalogWindow(items []Item, cursor, maxRows int) string {
 	if len(items) == 0 {
-		return "  (no targets)"
+		return "Name | Type | NS | Port\n  (no targets)"
 	}
-	start, end := visibleWindow(len(items), cursor, maxRows)
+	// Reserve one row for the column header when clipping.
+	contentRows := maxRows
+	if contentRows > 1 {
+		contentRows--
+	}
+	start, end := visibleWindow(len(items), cursor, contentRows)
 	var b strings.Builder
+	b.WriteString("Name | Type | NS | Port\n")
 	if start > 0 {
 		b.WriteString(fmt.Sprintf("  ↑ %d more\n", start))
 	}
@@ -34,30 +40,34 @@ func CatalogWindow(items []Item, cursor, maxRows int) string {
 		if i == cursor {
 			marker = "> "
 		}
-		label := item.Label
-		meta := fmt.Sprintf("[%s]", item.Type)
-		if item.Namespace != "" {
-			meta += " ns=" + item.Namespace
+		ns := item.Namespace
+		if ns == "" {
+			ns = "-"
 		}
-		if item.PreferredLocalPort != 0 {
-			meta += fmt.Sprintf("  %d→%d", item.PreferredLocalPort, item.RemotePort)
-		}
+		port := formatCatalogPort(item)
+		typeLabel := item.Type
 		if item.Favorite {
-			meta += "  ★"
+			typeLabel += " ★"
 		}
 		if !item.Available {
-			meta += "  unavailable"
+			typeLabel += " unavailable"
 		}
-		b.WriteString(marker)
-		b.WriteString(label)
-		b.WriteString(" ")
-		b.WriteString(meta)
-		b.WriteString("\n")
+		b.WriteString(fmt.Sprintf("%s%s | %s | %s | %s\n", marker, item.Label, typeLabel, ns, port))
 	}
 	if end < len(items) {
 		b.WriteString(fmt.Sprintf("  ↓ %d more\n", len(items)-end))
 	}
 	return b.String()
+}
+
+func formatCatalogPort(item Item) string {
+	if item.PreferredLocalPort != 0 {
+		return fmt.Sprintf("%d→%d", item.PreferredLocalPort, item.RemotePort)
+	}
+	if item.RemotePort != 0 {
+		return fmt.Sprintf("%d", item.RemotePort)
+	}
+	return "-"
 }
 
 func visibleWindow(total, cursor, maxRows int) (int, int) {
@@ -79,9 +89,9 @@ func visibleWindow(total, cursor, maxRows int) (int, int) {
 	if end > total {
 		end = total
 		start = end - maxRows
-	}
-	if start < 0 {
-		start = 0
+		if start < 0 {
+			start = 0
+		}
 	}
 	return start, end
 }
