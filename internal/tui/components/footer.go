@@ -8,9 +8,9 @@ func Footer(activeTab string) string {
 	var hints string
 	switch activeTab {
 	case "running":
-		hints = "J/K nav • x stop • R retry • / search • t filter • o sort • c ctx • n ns • r refresh • tab switch • q quit"
+		hints = "J/K nav • x stop • R retry • / search • t filter • o sort • c ctx • n ns • r refresh • ctrl+r aks sync • tab switch • q quit"
 	default:
-		hints = "↑/↓ nav • enter select • f favorite • / search • t filter • o sort • J/K tab-cursor • e edit port • x remove/stop • s start • c ctx • n ns • r refresh • tab switch • q quit"
+		hints = "↑/↓ nav • enter select • f favorite • / search • t filter • o sort • J/K tab-cursor • e edit port • x remove/stop • s start • c ctx • n ns • r refresh • ctrl+r aks sync • tab switch • q quit"
 	}
 	return footerStyle.Render(hints)
 }

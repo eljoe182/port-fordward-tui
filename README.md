@@ -8,6 +8,7 @@ Go + Bubble Tea TUI for managing `kubectl port-forward` across multiple targets
 - Go 1.24+ (see `go.mod`)
 - `kubectl` available on `PATH`
 - Access to a Kubernetes cluster with configured contexts
+- Optional: Azure CLI (`az`) on `PATH` and an authenticated session, for `Ctrl+R` AKS credential sync
 
 ## Install (Homebrew)
 
@@ -67,6 +68,7 @@ End users only need the built executable plus `kubectl` and a valid cluster cont
 | `c`            | Open the context selector and reload the catalog          |
 | `n`            | Open the namespace selector and reload the catalog        |
 | `r`            | Refresh the catalog for the current context and namespace |
+| `Ctrl+R`       | Sync Azure AKS credentials into kubeconfig, then refresh |
 | `s`            | Start port-forwards for every item in `Selected`          |
 | `x`            | Remove/stop in `Selected`; stop in `Running`               |
 | `R`            | Retry the highlighted failed forward                      |

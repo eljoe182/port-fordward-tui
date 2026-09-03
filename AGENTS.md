@@ -27,6 +27,7 @@ Compact context for coding agents. Prefer `README.md` for product behavior; this
 ## Runtime / env (easy to miss)
 
 - **kubectl** must be on `PATH` for discovery and forwards (see `internal/adapters/kubectl`).
+- **az** (optional) must be on `PATH` and logged in for `Ctrl+R` AKS credential sync (see `internal/adapters/azure`).
 - **Config directory**: override with `PORTFWD_TUI_CONFIG_DIR`; otherwise uses OS user config dir + `portfwd-tui` (see `cmd/portfwd-tui/main.go`).
 
 ## Build artifacts

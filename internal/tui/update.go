@@ -24,11 +24,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.cursor >= len(m.catalog) {
 			m.cursor = 0
 		}
-		m.errMsg = ""
+		if m.pendingHeader != "" {
+			m.errMsg = m.pendingHeader
+			m.pendingHeader = ""
+		} else {
+			m.errMsg = ""
+		}
 		return m, nil
 	case catalogErrorMsg:
 		m.errMsg = msg.err.Error()
 		return m, nil
+	case cloudSyncResultMsg:
+		return m.applyCloudSyncResult(msg)
 	case forwardStartedMsg:
 		return m, m.applyForwardStarted(msg)
 	case forwardFailedMsg:
@@ -90,6 +97,8 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.Type {
 	case tea.KeyCtrlC:
 		return m, tea.Quit
+	case tea.KeyCtrlR:
+		return m.startCloudCredentialSync()
 	case tea.KeyTab:
 		if m.activeTab == TabSelected {
 			m.activeTab = TabRunning

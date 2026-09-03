@@ -33,6 +33,7 @@ type Dependencies struct {
 	Runtime     ports.ForwardRunner
 	RuntimeApp  appruntime.Service
 	LocalPorts  ports.LocalPortChecker
+	CloudSync   ports.CloudCredentialSyncer
 }
 
 type Model struct {
@@ -63,6 +64,8 @@ type Model struct {
 	width           int
 	height          int
 	errMsg          string
+	syncing         bool
+	pendingHeader   string
 }
 
 func NewModel(deps Dependencies) Model {

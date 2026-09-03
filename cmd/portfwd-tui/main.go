@@ -11,6 +11,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"port-forward-tui/internal/adapters/azure"
 	"port-forward-tui/internal/adapters/configfile"
 	execadapter "port-forward-tui/internal/adapters/exec"
 	"port-forward-tui/internal/adapters/kubectl"
@@ -49,6 +50,7 @@ func bootstrap() (tui.Dependencies, error) {
 	runtime := kubectl.NewRuntime()
 	runtimeApp := appruntime.NewService(runtime)
 	store := configfile.NewStore(configDir)
+	cloudSync := azure.NewAKSSyncer(runner)
 
 	return tui.Dependencies{
 		Discovery:   discovery,
@@ -56,6 +58,7 @@ func bootstrap() (tui.Dependencies, error) {
 		Runtime:     runtime,
 		RuntimeApp:  runtimeApp,
 		LocalPorts:  localport.Checker{},
+		CloudSync:   cloudSync,
 	}, nil
 }
 
