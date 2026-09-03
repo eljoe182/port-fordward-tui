@@ -1,27 +1,27 @@
 class PortfwdTui < Formula
   desc "TUI for kubectl port-forward across multiple targets"
   homepage "https://github.com/eljoe182/port-fordward-tui"
-  version "1.3.0"
+  version "1.4.0"
 
   on_macos do
     on_arm do
-      url "https://github.com/eljoe182/port-fordward-tui/releases/download/v1.3.0/portfwd-tui-v1.3.0-darwin-arm64.tar.gz"
-      sha256 "a194d564750d4124649ffdcb74f22652adcb8688124183207cc5c914702699c8"
+      url "https://github.com/eljoe182/port-fordward-tui/releases/download/v1.4.0/portfwd-tui-v1.4.0-darwin-arm64.tar.gz"
+      sha256 "1bb1345df1491301c378554faecad217a94fe96e180c63fb13a6c3f8f28725fc"
     end
     on_intel do
-      url "https://github.com/eljoe182/port-fordward-tui/releases/download/v1.3.0/portfwd-tui-v1.3.0-darwin-amd64.tar.gz"
-      sha256 "0514d3d7cfcf9c27d19fbbdc7dbe64bf76d9460f4955a23f5652a798de894645"
+      url "https://github.com/eljoe182/port-fordward-tui/releases/download/v1.4.0/portfwd-tui-v1.4.0-darwin-amd64.tar.gz"
+      sha256 "e8fb3845b5c24903001cef2cf4d03880eb7b24492dfadb84a6dd9929f5ab29ec"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/eljoe182/port-fordward-tui/releases/download/v1.3.0/portfwd-tui-v1.3.0-linux-arm64.tar.gz"
-      sha256 "efe96da37effa20f140a517894dbe7416b5a77f755160fca04b8622ac96649ab"
+      url "https://github.com/eljoe182/port-fordward-tui/releases/download/v1.4.0/portfwd-tui-v1.4.0-linux-arm64.tar.gz"
+      sha256 "54c670d015a0486972f65587911692077442ab4b2a7a65cd2c57d4deee7f8f50"
     end
     on_intel do
-      url "https://github.com/eljoe182/port-fordward-tui/releases/download/v1.3.0/portfwd-tui-v1.3.0-linux-amd64.tar.gz"
-      sha256 "22859b259342d990e3c459d306ffe063e70df3b20bf61b91103f7101308f499c"
+      url "https://github.com/eljoe182/port-fordward-tui/releases/download/v1.4.0/portfwd-tui-v1.4.0-linux-amd64.tar.gz"
+      sha256 "37eb7c8f5e004dea4f48a783010a5a6130d3dde94d83f5096a21e353b4060eb1"
     end
   end
 
